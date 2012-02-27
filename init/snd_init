@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# snd_init	sound_initializer
+# chkconfig: 2345 30 30 
+# description: snd_init runs sound_initializer -i which make shared memory for audio system
+#
+
+if [ -x /usr/bin/sound_initializer ]; then
+	/usr/bin/sound_initializer -i
+fi

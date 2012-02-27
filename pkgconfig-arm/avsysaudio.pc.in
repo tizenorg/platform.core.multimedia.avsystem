@@ -1,0 +1,11 @@
+prefix = @prefix@
+exec_prefix= @exec_prefix@
+libdir = @libdir@
+includedir = @includedir@
+
+Name : avsysaudio
+Description : Multimedia Framework AV system Audio Library
+Requires : alsa libascenario mm-log libpulse-simple
+Version : @VERSION@
+Libs : -L${libdir} -lavsysaudio -lrt -lpthread 
+Cflags : -I${includedir}/avsystem
