@@ -1,11 +1,10 @@
-
 Name:       avsystem
 Summary:    Audio Video System
-Version:    0.3.50
+Version:    0.4.13
 Release:    1
-Group:      TO_BE/FILLED_IN
-License:    TO BE FILLED IN
-Source0:    avsystem-%{version}.tar.bz2
+Group:      System/Libraries
+License:    Apache-2.0
+Source0:    avsystem-%{version}.tar.gz
 BuildRequires: pkgconfig(alsa)
 BuildRequires: pkgconfig(iniparser)
 BuildRequires: pkgconfig(mm-ta)
@@ -44,30 +43,23 @@ Audio Video System Development headers and libraries.
 make %{?jobs:-j%jobs}
 
 %install
-rm -rf %{buildroot}
 %make_install
 
 
-
-%post -p /sbin/ldconfig
+%post 
+/sbin/ldconfig
+mkdir -p /etc/rc.d/rc3.d/
+ln -s ../init.d/snd_init /etc/rc.d/rc3.d/S30snd_init
+mkdir -p /etc/rc.d/rc4.d/
+ln -s ../init.d/snd_init /etc/rc.d/rc4.d/S30snd_init
 
 %files
-%defattr(-,root,root,-)
 /etc/rc.d/init.d/snd_init
-/usr/bin/camera_caps_generator
-/usr/bin/sound_initializer
-/usr/lib/libavsysaudio.so.0
-/usr/lib/libavsysaudio.so.0.0.1
-/usr/lib/libavsyscamera.so.0
-/usr/lib/libavsyscamera.so.0.0.0
+/usr/bin/*
+/usr/lib/lib*.so.*
 
 %files devel
-/usr/lib/libavsysaudio.so
 /usr/lib/pkgconfig/*.pc
-/usr/lib/libavsyscamera.so
-/usr/include/avsystem/avsys-audio.h
-/usr/include/avsystem/avsys-cam-exif.h
-/usr/include/avsystem/avsys-cam.h
-/usr/include/avsystem/avsys-error.h
-/usr/include/avsystem/avsys-types.h
-/usr/include/avsystem/avsystem.h
+/usr/lib/*.so
+/usr/include/avsystem/*.h
+
