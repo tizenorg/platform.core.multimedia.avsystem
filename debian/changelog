@@ -1,3 +1,27 @@
+avsystem (0.4.13-4) unstable; urgency=low
+
+  * ringtone type volume adjustment for emualtor
+  * Git: slp/pkgs/a/avsystem
+  * Tag: avsystem_0.4.13-4
+
+ -- Seungbae Shin <seungbae.shin@samsung.com>  Thu, 19 Apr 2012 18:00:03 +0900
+
+avsystem (0.4.13-3) unstable; urgency=low
+
+  * system/notification type volume adjustment for emulator
+  * Git: slp/pkgs/a/avsystem
+  * Tag: avsystem_0.4.13-3
+
+ -- Seungbae Shin <seungbae.shin@samsung.com>  Wed, 04 Apr 2012 14:53:30 +0900
+
+avsystem (0.4.13-2) unstable; urgency=low
+
+  * volume adjustment for emulator
+  * Git: slp/pkgs/a/avsystem
+  * Tag: avsystem_0.4.13-2
+
+ -- Seungbae Shin <seungbae.shin@samsung.com>  Tue, 03 Apr 2012 14:29:06 +0900
+
 avsystem (0.4.13-1) unstable; urgency=low
 
   * Initial release
