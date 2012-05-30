@@ -5,6 +5,7 @@ Release:    1
 Group:      System/Libraries
 License:    Apache-2.0
 Source0:    avsystem-%{version}.tar.gz
+Source1001: packaging/avsystem.manifest 
 BuildRequires: pkgconfig(alsa)
 BuildRequires: pkgconfig(iniparser)
 BuildRequires: pkgconfig(mm-ta)
@@ -32,6 +33,7 @@ Audio Video System Development headers and libraries.
 
 
 %build
+cp %{SOURCE1001} .
 %autogen
 %configure \
 %ifarch %{ix86}
@@ -54,11 +56,13 @@ mkdir -p /etc/rc.d/rc4.d/
 ln -s ../init.d/snd_init /etc/rc.d/rc4.d/S30snd_init
 
 %files
+%manifest avsystem.manifest
 /etc/rc.d/init.d/snd_init
 /usr/bin/*
 /usr/lib/lib*.so.*
 
 %files devel
+%manifest avsystem.manifest
 /usr/lib/pkgconfig/*.pc
 /usr/lib/*.so
 /usr/include/avsystem/*.h
