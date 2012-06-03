@@ -5,7 +5,10 @@ Release:    1
 Group:      System/Libraries
 License:    Apache-2.0
 Source0:    avsystem-%{version}.tar.gz
-Source1001: packaging/avsystem.manifest 
+Source1001: packaging/avsystem.manifest
+Requires(post): /sbin/ldconfig
+Requires(post): /bin/ln
+Requires(post): /bin/mkdir
 BuildRequires: pkgconfig(alsa)
 BuildRequires: pkgconfig(iniparser)
 BuildRequires: pkgconfig(mm-ta)
