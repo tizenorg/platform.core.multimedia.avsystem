@@ -6,9 +6,10 @@ Group:      System/Libraries
 License:    Apache-2.0
 Source0:    avsystem-%{version}.tar.gz
 Source1001: packaging/avsystem.manifest
+
 Requires(post): /sbin/ldconfig
-Requires(post): /bin/ln
-Requires(post): /bin/mkdir
+Requires(postun): /sbin/ldconfig
+
 BuildRequires: pkgconfig(alsa)
 BuildRequires: pkgconfig(iniparser)
 BuildRequires: pkgconfig(mm-ta)
@@ -51,16 +52,20 @@ make %{?jobs:-j%jobs}
 %make_install
 
 
-%post 
-/sbin/ldconfig
-mkdir -p /etc/rc.d/rc3.d/
-ln -s ../init.d/snd_init /etc/rc.d/rc3.d/S30snd_init
-mkdir -p /etc/rc.d/rc4.d/
-ln -s ../init.d/snd_init /etc/rc.d/rc4.d/S30snd_init
+mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/
+ln -s ../init.d/snd_init %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S30snd_init
+mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc4.d/
+ln -s ../init.d/snd_init %{buildroot}/%{_sysconfdir}/rc.d/rc4.d/S30snd_init
+
+%post -p /sbin/ldconfig
+
+%postun -p /sbin/ldconfig
 
 %files
 %manifest avsystem.manifest
 /etc/rc.d/init.d/snd_init
+/etc/rc.d/rc3.d/S30snd_init
+/etc/rc.d/rc4.d/S30snd_init
 /usr/bin/*
 /usr/lib/lib*.so.*
 
