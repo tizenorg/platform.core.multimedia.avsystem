@@ -1,0 +1,10 @@
+[Unit]
+Description=Start the av system 
+After=pulseaudio.service 
+
+[Service]
+ExecStart=/usr/bin/sound_initializer -i 
+ExecStop=/usr/bin/sound_initializer -u 
+
+[Install]
+WantedBy=tizen-mobile.target

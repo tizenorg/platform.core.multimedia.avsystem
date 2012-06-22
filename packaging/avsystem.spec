@@ -5,10 +5,14 @@ Release:    1
 Group:      System/Libraries
 License:    Apache-2.0
 Source0:    avsystem-%{version}.tar.gz
+Source101:  packaging/avsystem.service
 Source1001: packaging/avsystem.manifest
 
 Requires(post): /sbin/ldconfig
+Requires(post): /usr/bin/systemctl
 Requires(postun): /sbin/ldconfig
+Requires(postun): /usr/bin/systemctl
+Requires(preun): /usr/bin/systemctl
 
 BuildRequires: pkgconfig(alsa)
 BuildRequires: pkgconfig(iniparser)
@@ -57,21 +61,40 @@ ln -s ../init.d/snd_init %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S30snd_init
 mkdir -p %{buildroot}/%{_sysconfdir}/rc.d/rc4.d/
 ln -s ../init.d/snd_init %{buildroot}/%{_sysconfdir}/rc.d/rc4.d/S30snd_init
 
-%post -p /sbin/ldconfig
+mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
+install -m 0644 %SOURCE101 %{buildroot}%{_libdir}/systemd/system/avsystem.service
+ln -s ../avsystem.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/avsystem.service
 
-%postun -p /sbin/ldconfig
+
+%preun
+if [ $1 == 0 ]; then
+    systemctl stop avsystem.service
+fi
+
+%post
+/sbin/ldconfig
+systemctl daemon-reload
+if [ $1 == 1 ]; then
+    systemctl restart avsystem.service
+fi
+
+%postun
+/sbin/ldconfig
+systemctl daemon-reload
 
 %files
 %manifest avsystem.manifest
-/etc/rc.d/init.d/snd_init
-/etc/rc.d/rc3.d/S30snd_init
-/etc/rc.d/rc4.d/S30snd_init
-/usr/bin/*
-/usr/lib/lib*.so.*
+%{_sysconfdir}/rc.d/init.d/snd_init
+%{_sysconfdir}/rc.d/rc3.d/S30snd_init
+%{_sysconfdir}/rc.d/rc4.d/S30snd_init
+%{_bindir}/*
+%{_libdir}/lib*.so.*
+%{_libdir}/systemd/system/avsystem.service
+%{_libdir}/systemd/system/multi-user.target.wants/avsystem.service
 
 %files devel
 %manifest avsystem.manifest
-/usr/lib/pkgconfig/*.pc
-/usr/lib/*.so
+%{_libdir}/pkgconfig/*.pc
+%{_libdir}/*.so
 /usr/include/avsystem/*.h
 
