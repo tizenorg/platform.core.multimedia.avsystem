@@ -1,4 +1,19 @@
-* Thu Jun 21 2012 William Douglas <william.douglas@intel.com> - 0.4.13
-- Move post section file creation to install phase, update BuildRequires
-* Mon Jun 4 2012 vivian zhang <vivian.zhang@intel.com> - 0.4.13
+* Thu Jun 21 2012 William Douglas <william.douglas@intel.com> 34f9a67
+- add systemd unit file
+- Fix post section.
+
+* Sun Jun 03 2012 vivian, zhang <vivian.zhang@intel.com> 1a3b6db
 - Added necessary Requires(post): /bin/ln, /bin/mkdir, /sbin/ldconfig in spec file to fix the warnings in image creating
+
+* Tue May 29 2012 Ryan Ware <ryan.r.ware@intel.com> 6c969a3
+- Add default Smack manifest for avsystem.spec
+
+* Sun Apr 29 2012 Kim Kibum <kb0929.kim@samsung.com> 06221cf
+- upload tizen1.0 source
+
+* Tue Mar 13 2012 Yan Yin <yan.yin@intel.com> 2a9e680
+- update for beta universally
+
+* Mon Feb 27 2012 Kibum Kim <kb0929.kim@samsung.com> b8e758c
+- tizen beta release
+
