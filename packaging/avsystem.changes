@@ -1,3 +1,9 @@
+* Mon Jul 09 2012 William Douglas <william.douglas@intel.com> 09ba094
+- Fix service file error causing service to fail.
+
+* Mon Jul 02 2012 Patrick McCarty <patrick.mccarty@linux.intel.com> 68cd6aa
+- Regenerate changelog; add tag for OBS submit
+
 * Thu Jun 21 2012 William Douglas <william.douglas@intel.com> 34f9a67
 - add systemd unit file
 - Fix post section.
