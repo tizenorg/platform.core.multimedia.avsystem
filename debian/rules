@@ -46,7 +46,7 @@ configure: configure.ac
 config.status: configure
 	dh_testdir
 	# Add here commands to configure the package.
-	CFLAGS="$(CFLAGS) -DGST_EXT_TIME_ANALYSIS" LDFLAGS="$(LDFLAGS)" ./configure --prefix=$(PREFIX) $(OPTION)
+	CFLAGS="$(CFLAGS) -DGST_EXT_TIME_ANALYSIS" LDFLAGS="$(LDFLAGS)" ./configure --prefix=$(PREFIX) $(OPTION) --enable-audiotest
 
 build: build-stamp
 
@@ -94,9 +94,9 @@ install: build
 	# Add here commands to install the package into debian/ncurses.
 	$(MAKE) DESTDIR=$(CURDIR)/debian/tmp install
 	mkdir -p $(CURDIR)/debian/tmp/etc/rc.d/rc3.d/
-	ln -s ../init.d/snd_init $(CURDIR)/debian/tmp/etc/rc.d/rc3.d/S30snd_init
+	ln -s ../init.d/snd_init $(CURDIR)/debian/tmp/etc/rc.d/rc3.d/S15snd_init
 	mkdir -p $(CURDIR)/debian/tmp/etc/rc.d/rc4.d/
-	ln -s ../init.d/snd_init $(CURDIR)/debian/tmp/etc/rc.d/rc4.d/S30snd_init
+	ln -s ../init.d/snd_init $(CURDIR)/debian/tmp/etc/rc.d/rc4.d/S15snd_init
 
 # Build architecture-independent files here.
 binary-indep: build install

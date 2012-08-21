@@ -49,8 +49,8 @@ libavsysaudio_la_CFLAGS += $(MMLOG_CFLAGS) \
 			-D__USE_LOGMANAGER__ \
 			-DMM_DEBUG_FLAG
 
-libavsysaudio_la_LIBADD += $(MMLOG_LIBS)
-
+libavsysaudio_la_LIBADD += $(MMLOG_LIBS) \
+			   $(INIPARSER_LIBS)
 
 bin_PROGRAMS = sound_initializer
 sound_initializer_SOURCES = avsys-audio-initializer.c

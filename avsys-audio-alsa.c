@@ -29,9 +29,11 @@
 #if defined(_MMFW_I386_ALL_SIMULATOR)
 #define AIF2_DEVICE_NAME "default"
 #define AIF3_DEVICE_NAME "default"
+#define AIF4_DEVICE_NAME "default"
 #else
 #define AIF2_DEVICE_NAME "AIF2"
 #define AIF3_DEVICE_NAME "AIF3"
+#define AIF4_DEVICE_NAME "AIF4"
 #endif
 
 int avsys_audio_alsa_open_AIF_device(const int AIF_type, avsys_audio_alsa_aif_handle_t *handle)
@@ -61,6 +63,10 @@ int avsys_audio_alsa_open_AIF_device(const int AIF_type, avsys_audio_alsa_aif_ha
 		break;
 	case AIF3_PLAYBACK:
 		strncpy(dev_name, AIF3_DEVICE_NAME, sizeof(dev_name) - 1);
+		stream = SND_PCM_STREAM_PLAYBACK;
+		break;
+	case AIF4_PLAYBACK:
+		strncpy(dev_name, AIF4_DEVICE_NAME, sizeof(dev_name) - 1);
 		stream = SND_PCM_STREAM_PLAYBACK;
 		break;
 	default:
@@ -134,6 +140,10 @@ int avsys_audio_alsa_set_AIF_params(avsys_audio_alsa_aif_handle_t *handle)
 	ahandle = (snd_pcm_t *)handle->alsa_handle;
 	if (!ahandle)
 		return AVSYS_STATE_ERR_NULL_POINTER;
+
+	/* Skip parameter setting to null device. */
+	if (snd_pcm_type(ahandle) == SND_PCM_TYPE_NULL)
+		return AVSYS_STATE_SUCCESS;
 
 	/* Allocate a hardware parameters object. */
 	snd_pcm_hw_params_alloca(&params);

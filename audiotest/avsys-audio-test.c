@@ -76,7 +76,7 @@ int __make_param(int op, int mode, int routing, avsys_audio_param_t *param)
 
 	param->priority = AVSYS_AUDIO_PRIORITY_NORMAL;
 	param->vol_type = AVSYS_AUDIO_VOLUME_TYPE_SYSTEM;
-	param->bluetooth = routing;
+	param->handle_route = routing;
 
 	switch (mode) {
 	case 0:
@@ -196,7 +196,7 @@ int _capture(int mode, int routing, char *filename)
 		goto FAIL;
 	}
 
-	fd = open(namebuffer, O_WRONLY | O_CREAT);
+	fd = open(namebuffer, O_WRONLY | O_CREAT, 0644);
 	if (fd == -1) {
 		printf("Can not open file %s, %s\n", namebuffer, strerror(errno));
 		goto FAIL;

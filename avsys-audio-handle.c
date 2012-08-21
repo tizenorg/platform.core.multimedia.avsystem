@@ -146,7 +146,7 @@ int avsys_audio_handle_reset(int *volume_value)
 	long long int flag = 0x01;
 	avsys_audio_handle_info_t *control = NULL;
 	avsys_audio_handle_info_t **temp = NULL;
-	int *lvolume = NULL;
+	int lvolume[AVSYS_AUDIO_VOLUME_TYPE_MAX] = { 0, };
 	int default_volume[] = { DEFAULT_VOLUME_SYSTEM, DEFAULT_VOLUME_NOTIFICATION,
 						DEFAULT_VOLUME_ALARM, DEFAULT_VOLUME_RINGTONE,
 						DEFAULT_VOLUME_MEDIA, DEFAULT_VOLUME_CALL,
@@ -166,9 +166,23 @@ int avsys_audio_handle_reset(int *volume_value)
 	}
 
 	if (volume_value == NULL) {
-		lvolume = default_volume;
+		for (i = 0; i < AVSYS_AUDIO_VOLUME_TYPE_MAX; i++) {
+			lvolume[i] = default_volume[i];
+		}
 	} else {
-		lvolume = volume_value;
+		avsys_audio_path_ex_info_t *path_control = NULL;
+
+		if (AVSYS_FAIL(avsys_audio_get_shm(AVSYS_AUDIO_SHM_IDEN_PATH, (void **)&path_control))) {
+			avsys_error(AVAUDIO, "avsys_audio_get_shm() failed in %s\n", __func__);
+			return AVSYS_STATE_ERR_INTERNAL;
+		}
+		if (path_control == NULL) {
+			avsys_error(AVAUDIO, "control is null in %s\n", __func__);
+			return AVSYS_STATE_ERR_NULL_POINTER;
+		}
+		for (i = 0; i < AVSYS_AUDIO_VOLUME_TYPE_MAX; i++) {
+			lvolume[i] = volume_value[i];
+		}
 	}
 
 	for (i = 0; i < AVSYS_AUDIO_HANDLE_MAX; i++) {
@@ -204,6 +218,7 @@ int avsys_audio_handle_reset(int *volume_value)
 	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_6] = lvolume[6]; /* DEFAULT_VOLUME_FIXED */
 	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_7] = lvolume[7]; /* DEFAULT_VOLUME_JAVA */
 	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_8] = lvolume[4]; /* DEFAULT_VOLUME_MEDIA */
+	avsys_error(AVAUDIO, "[zeud] avsys_audio_handle_reset lvolume[0][%d]", lvolume[0]);
 	control->ext_device_amp = AVSYS_AUDIO_HANDLE_EXT_DEV_NONE;
 	control->primary_volume_pid = 0;
 	control->primary_volume_type = -1;
@@ -830,7 +845,7 @@ int avsys_audio_handle_current_playing_volume_type(int *type)
 
 	if (control->primary_volume_pid > 2 && AVSYS_FAIL(avsys_check_process(control->primary_volume_pid))) {
 		avsys_warning(AVAUDIO, "Primary volume set pid does not exist anymore. clean primary volume\n");
-		control->primary_volume_type = 1;
+		control->primary_volume_type = -1;
 		control->primary_volume_pid = 0;
 	}
 
@@ -907,6 +922,7 @@ int avsys_audio_handle_update_volume_by_type(const int volume_type, const int vo
 	AVSYS_LOCK_SYNC();
 
 	control->volume_value[volume_type] = volume_value;
+	avsys_error(AVAUDIO, "[zeud] avsys_audio_handle_update_volume_by_type volume_value[%d]", volume_value);
 
 	for (i = 0; i < AVSYS_AUDIO_HANDLE_MAX; i++) {
 		int mode;
@@ -936,6 +952,7 @@ int avsys_audio_handle_update_volume_by_type(const int volume_type, const int vo
 		set_volume = &(control->handles[i].setting_vol);
 		set_volume->level[AVSYS_AUDIO_CHANNEL_LEFT] = control->volume_value[volume_type];
 		set_volume->level[AVSYS_AUDIO_CHANNEL_RIGHT] = control->volume_value[volume_type];
+		avsys_error(AVAUDIO, "[zeud] avsys_audio_handle_update_volume_by_type control->volume_value[volume_type][%d]", control->volume_value[volume_type]);
 		result = avsys_audio_logical_volume_convert(set_volume, &(control->handles[i].working_vol), &(control->handles[i].gain_setting));
 		if (AVSYS_FAIL(result)) {
 			avsys_error(AVAUDIO, "Can not set volume for handle %d. Error 0x%x\n", i, result);

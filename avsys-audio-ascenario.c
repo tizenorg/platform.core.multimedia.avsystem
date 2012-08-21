@@ -36,6 +36,8 @@
 #define STR_BUFF_MAX 128
 #define P_STR_MAX 42
 #define O_STR_MAX 44
+#define CARD_NUMBER 0 /* ALSA card number */
+
 static int __avsys_audio_ascn_make_scenario_str(int input, char *buf, int buf_len)
 {
 	char fromStr[P_STR_MAX] = { 0, };
@@ -118,7 +120,8 @@ static int __avsys_audio_ascn_make_scenario_str(int input, char *buf, int buf_le
 int avsys_audio_ascn_bulk_set(int * bulk, int bulk_cnt, AscnResetType clear)
 {
 	struct snd_scenario *scn = NULL;
-	char card_name[STR_BUFF_MAX] = { 0, };
+	int card = CARD_NUMBER;
+	char *name = NULL;
 	char str_buf[STR_BUFF_MAX] = { 0, };
 	char reset_str[STR_BUFF_MAX] = { 0, };
 	int err = AVSYS_STATE_SUCCESS;
@@ -144,12 +147,31 @@ int avsys_audio_ascn_bulk_set(int * bulk, int bulk_cnt, AscnResetType clear)
 		return AVSYS_STATE_ERR_RANGE_OVER;
 	}
 
-	snprintf(card_name, sizeof(card_name) - 1, "default");
+	/* Try to get card name from CARD_NUMBER. */
+	snd_card_get_name(card, &name);
 #if defined(TIME_CHECK)
 	gettimeofday(&t_start, NULL);
 #endif
-	//avsys_info(AVAUDIO, "snd_scenario_open() with [%s]\n", card_name);
-	scn = snd_scenario_open(card_name);
+	if (name == NULL) {
+		scn = snd_scenario_open("default");
+		if (scn == NULL)
+		{
+			avsys_error(AVAUDIO, "snd_scenario_open() failed to open with default\n");
+			return AVSYS_STATE_ERR_INTERNAL;
+		}
+	} else {
+		scn = snd_scenario_open(name);
+		free(name);
+		if (scn == NULL)
+		{
+			scn = snd_scenario_open("default");
+			if (scn == NULL)
+			{
+				avsys_error(AVAUDIO, "snd_scenario_open() failed to open with default\n");
+				return AVSYS_STATE_ERR_INTERNAL;
+			}
+		}
+	}
 #if defined(TIME_CHECK)
 	gettimeofday(&t_stop, NULL);
 	if (t_stop.tv_sec == t_start.tv_sec)
@@ -158,12 +180,6 @@ int avsys_audio_ascn_bulk_set(int * bulk, int bulk_cnt, AscnResetType clear)
 		check = (t_stop.tv_sec - t_start.tv_sec) * 1000 + (t_stop.tv_usec - t_start.tv_usec) / 1000;
 	avsys_warning(AVAUDIO, "[snd_scenario_open()] takes %u msec\n", check);
 #endif
-	if (scn == NULL) {
-		avsys_error_r(AVAUDIO, "alsa scenario open failed %s\n", card_name);
-		return AVSYS_STATE_ERR_INTERNAL;
-	}
-	//avsys_info(AVAUDIO, "snd_scenario_open() success\n");
-
 	if (clear != ASCN_RESET_NONE) {
 		switch (clear) {
 		case ASCN_RESET_ALL:
@@ -241,7 +257,8 @@ bulk_error:
 int avsys_audio_ascn_single_set(char * str)
 {
 	struct snd_scenario *scn = NULL;
-	char card_name[STR_BUFF_MAX] = { 0, };
+	int card = CARD_NUMBER;
+	char *name = NULL;
 	char cmd_str[STR_BUFF_MAX] = { 0, };
 	int err = AVSYS_STATE_SUCCESS;
 
@@ -250,23 +267,40 @@ int avsys_audio_ascn_single_set(char * str)
 		return AVSYS_STATE_ERR_NULL_POINTER;
 	}
 
-	snprintf(card_name, sizeof(card_name) - 1, "default");
-//	avsys_info(AVAUDIO, "snd_scenario_open() with [%s]\n", card_name);
-	scn = snd_scenario_open(card_name);
-	if (scn == NULL) {
-		avsys_error_r(AVAUDIO, "alsa scenario open failed %s\n", card_name);
-		return AVSYS_STATE_ERR_INTERNAL;
-	}
-//	avsys_info(AVAUDIO, "snd_scenario_open() success\n");
+	/* Try to get card name from CARD_NUMBER. */
+	snd_card_get_name(card, &name);
 
+	if (name == NULL) {
+		scn = snd_scenario_open("default");
+		if (scn == NULL)
+		{
+			avsys_error(AVAUDIO, "snd_scenario_open() failed to open with default\n");
+			return AVSYS_STATE_ERR_INTERNAL;
+		}
+	} else {
+		scn = snd_scenario_open(name);
+		free(name);
+		if (scn == NULL)
+		{
+			scn = snd_scenario_open("default");
+			if (scn == NULL)
+			{
+				avsys_error(AVAUDIO, "snd_scenario_open() failed to open with default\n");
+				return AVSYS_STATE_ERR_INTERNAL;
+			}
+		}
+	}
+
+	/* Set scenario */
 	strncpy(cmd_str, str, sizeof(cmd_str) - 1);
 	err = snd_scenario_set_scn(scn, str);
-	avsys_warning(AVAUDIO, "alsa scenario set [%s]\n", str);
+	avsys_info(AVAUDIO, "alsa scenario set [%s]\n", str);
 
 	if (err < 0) {
-		avsys_error_r(AVAUDIO, "snd_scenario_set(%s) failed\n", str);
+		avsys_error(AVAUDIO, "snd_scenario_set(%s) failed\n", str);
 	}
 
+	/* Close scenario manager core */
 	snd_scenario_close(scn);
 
 	return err;

@@ -473,3 +473,40 @@ int avsys_audio_pasimple_get_period_buffer_time(avsys_audio_handle_t *handle, un
 	return AVSYS_STATE_SUCCESS;
 }
 
+int avsys_audio_pasimple_cork(avsys_audio_handle_t *handle, int cork)
+{
+	pa_simple *s = NULL;
+	avsys_audio_pasimple_handle_t *device = NULL;
+	int err = 0;
+
+	CHECK_VALID_HANDLE(handle);
+
+	s = (pa_simple *)device->pasimple_handle;
+
+	if (0 > pa_simple_cork(s, cork, &err)) {
+		avsys_error(AVAUDIO, "pa_simple_cork() failed with %s\n", pa_strerror(err));
+		return AVSYS_STATE_ERR_INTERNAL;
+	}
+
+	return AVSYS_STATE_SUCCESS;
+}
+
+int avsys_audio_pasimple_is_corked(avsys_audio_handle_t *handle, int *is_corked)
+{
+	pa_simple *s = NULL;
+	avsys_audio_pasimple_handle_t *device = NULL;
+	int err = 0;
+
+	if (is_corked == NULL)
+		return AVSYS_STATE_ERR_INTERNAL;
+
+	CHECK_VALID_HANDLE(handle);
+
+	s = (pa_simple *)device->pasimple_handle;
+
+	*is_corked = pa_simple_is_corked(s);
+
+	return AVSYS_STATE_SUCCESS;
+}
+
+

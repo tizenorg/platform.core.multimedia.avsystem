@@ -49,6 +49,8 @@ int avsys_audio_pasimple_drain(avsys_audio_handle_t *handle);
 int avsys_audio_pasimple_delay(avsys_audio_handle_t *handle, int *delay_frames);
 int avsys_audio_pasimple_set_volume(avsys_audio_handle_t *handle, int volume);
 int avsys_audio_pasimple_get_period_buffer_time(avsys_audio_handle_t *handle, unsigned int *period_time, unsigned int *buffer_time);
+int avsys_audio_pasimple_cork(avsys_audio_handle_t *handle, int cork);
+int avsys_audio_pasimple_is_corked(avsys_audio_handle_t *handle, int *is_corked);
 
 #ifdef __cplusplus
 	}
