@@ -2,7 +2,7 @@
 Name:       avsystem
 Summary:    Audio Video System
 Version:    0.5.0
-Release:    11
+Release:    13
 Group:      System/Libraries
 License:    Apache-2.0
 Source0:    avsystem-%{version}.tar.gz

@@ -98,7 +98,9 @@ static int __avsys_audio_ascn_make_scenario_str(int input, char *buf, int buf_le
 	if (input & OUTPUT_AP) {
 		strncpy(toStr, "ap", sizeof(toStr) - 1);
 	}
-
+	if (input & OUTPUT_DOCK) {
+		strncpy(toStr, "dock", sizeof(toStr) - 1);
+	}
 	if (input & GAIN_MODE) {
 		strncpy(optStr, "_gain", sizeof(optStr) - 1);
 	}

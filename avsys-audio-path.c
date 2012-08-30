@@ -50,24 +50,24 @@
 
 static int g_playback_path_select_data[AVSYS_AUDIO_PLAYBACK_GAIN_MAX][AVSYS_AUDIO_PATH_EX_OUTMAX] = {
 		{ /* AVSYS_AUDIO_PLAYBACK_GAIN_AP */
-			/* NONE SPK RECV HEADSET BTHEADSET A2DP HANDSFREE HDMI */
-				0,	1,	0,	1,	0,	0,	0,	0
+			/* NONE SPK RECV HEADSET BTHEADSET A2DP HANDSFREE HDMI DOCK USBAUDIO */
+				0,	1,	0,	1,	0,	0,	0,	0,  1,  0
 		},
 		{ /* AVSYS_AUDIO_PLAYBACK_GAIN_FMRADIO */
 			/* NONE SPK RECV HEADSET BTHEADSET A2DP HANDSFREE HDMI */
-				1,	1,	0,	1,	0,	1,	0,	0
+				1,	1,	0,	1,	0,	1,	0,	0,  0,  0
 		},
 		{ /* AVSYS_AUDIO_PLAYBACK_GAIN_VOICECALL */
 			/* NONE SPK RECV HEADSET BTHEADSET A2DP HANDSFREE HDMI */
-				1,	1,	1,	1,	1,	0,	0,	0
+				1,	1,	1,	1,	1,	0,	0,	0,  0,  0
 		},
 		{ /* AVSYS_AUDIO_PLAYBACK_GAIN_VIDEOCALL */
 			/* NONE SPK RECV HEADSET BTHEADSET A2DP HANDSFREE HDMI */
-				1,	1,	1,	1,	1,	0,	0,	0
+				1,	1,	1,	1,	1,	0,	0,	0,  0,  0
 		},
 		{ /* AVSYS_AUDIO_PLAYBACK_GAIN_CALLALERT */
 			/* NONE SPK RECV HEADSET BTHEADSET A2DP HANDSFREE HDMI */
-				0,	1,	1,	1,	1,	0,	0,	0
+				0,	1,	1,	1,	1,	0,	0,	0,  0,  0
 		}
 };
 
@@ -502,7 +502,7 @@ int avsys_audio_path_ex_dump(void)
 	const static char *str_yn[] = { "NO", "YES" };
 	const static char *str_ear[] = { "MANUAL", "AUTO_MUTE", "AUTO_NOMUTE" };
 	const static char *str_out[AVSYS_AUDIO_PATH_EX_OUTMAX] = {
-		"NONE", "SPK", "RECV", "HEADSET", "BTHEADSET", "A2DP", "HANSFREE"
+		"NONE", "SPK", "RECV", "HEADSET", "BTHEADSET", "A2DP", "HANSFREE", "HDMI", "DOCK", "USBAUDIO"
 	};
 	const static char *str_in[AVSYS_AUDIO_PATH_EX_INMAX] = {
 		"NONE", "MIC", "HEADMIC", "BTMIC", "FMINPUT", "HANSFREEMIC"
@@ -1529,6 +1529,12 @@ static int __avsys_audio_path_set_ascn_ap_playback(avsys_audio_path_ex_info_t *c
 	case AVSYS_AUDIO_PATH_EX_HDMI:
 		avsys_warning(AVAUDIO, "Does not support dedicated HDMI sound path\n");
 		control->lvol_dev_type = AVSYS_AUDIO_LVOL_DEV_TYPE_SPK;
+		break;
+
+	case AVSYS_AUDIO_PATH_EX_DOCK:
+		control->lvol_dev_type = AVSYS_AUDIO_LVOL_DEV_TYPE_SPK;
+		cmd_gain[0] = INPUT_AP | OUTPUT_DOCK | GAIN_MODE;
+		cmd_path[0] = INPUT_AP | OUTPUT_DOCK;
 		break;
 
 	case AVSYS_AUDIO_PATH_EX_BTHEADSET:

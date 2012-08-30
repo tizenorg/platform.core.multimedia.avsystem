@@ -63,7 +63,7 @@ typedef enum {
 #define OUTPUT_CH_9			((1 << (9 + OUT)))	/* Video call gain */
 #define OUTPUT_CH_10		((1 << (10 + OUT)))	/* Video call gain */
 #define OUTPUT_CH_11		((1 << (11 + OUT)))	/* Reserved */
-#define OUTPUT_CH_12		((1 << (12 + OUT)))	/* Reserved */
+#define OUTPUT_CH_12		((1 << (12 + OUT)))	/* Dock */
 #define OUTPUT_CH_13		((1 << (13 + OUT)))	/* Call alert Gain */
 
 #define INPUT_MAIN_MIC		(INPUT_CH_0)
@@ -83,6 +83,7 @@ typedef enum {
 #define OUTPUT_BT_HEADSET	(OUTPUT_CH_5)
 #define OUTPUT_CP			(OUTPUT_CH_6)
 #define OUTPUT_AP			(OUTPUT_CH_7)
+#define OUTPUT_DOCK			(OUTPUT_CH_12)
 
 #define GAIN_MODE			(OUTPUT_CH_8)
 #define GAIN_VIDEO_CALL		(OUTPUT_CH_9)

@@ -755,12 +755,12 @@ static inline int __avsys_audio_validate_volume(const int type, const int value)
 	if (value < 0)
 		return -1;
 	switch (type) {
-	case AVSYS_AUDIO_VOLUME_TYPE_ALARM:
 	case AVSYS_AUDIO_VOLUME_TYPE_CALL:
 		if (value >= LVOLUME_MAX_BASIC) {
 			return -1;
 		}
 		break;
+	case AVSYS_AUDIO_VOLUME_TYPE_ALARM:
 	case AVSYS_AUDIO_VOLUME_TYPE_RINGTONE:
 	case AVSYS_AUDIO_VOLUME_TYPE_NOTIFICATION:
 	case AVSYS_AUDIO_VOLUME_TYPE_SYSTEM:
