@@ -67,6 +67,10 @@ do { \
 	attr.fragsize = fs; \
 } while (0)
 
+#define MEDIA_POLICY_AUTO	"auto"
+#define MEDIA_POLICY_PHONE	"phone"
+#define MEDIA_POLICY_ALL	"all"
+
 int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, const unsigned int channel, const unsigned int samplerate, avsys_audio_handle_t *handle, int policy)
 {
 	pa_simple *s = NULL;
@@ -75,14 +79,24 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 	pa_buffer_attr attr;
 	int err = AVSYS_STATE_SUCCESS;
 	int period_time = PA_SIMPLE_PERIOD_TIME_FOR_MID_LATENCY_MSEC;
-
 	int samples_per_period = PA_SIMPLE_SAMPLES_PER_PERIOD_DEFAULT;
 	int periods_per_buffer = PA_SIMPLE_PERIODS_PER_BUFFER_DEFAULT;
+	int vol_conf_type = AVSYS_AUDIO_VOLUME_CONFIG_TYPE(handle->gain_setting.volume_config);
+	pa_channel_map channel_map;
+
+	int p_time = PA_SIMPLE_PERIOD_TIME_FOR_HIGH_LATENCY_MSEC;
+	int p_count = PA_SIMPLE_PERIODS_PER_BUFFER_PLAYBACK;
+	char *time = getenv("AVSYS_PERIOD_TIME");
+	char *count = getenv("AVSYS_PERIOD_COUNT");
+	if(time)
+		p_time = atoi(time);
+	if(count)
+		p_count = atoi(count);
 
 	avsys_info(AVAUDIO, ">>>[%s] mode=%d, format=%d, channel=%d, samplerate=%d\n", __func__, mode, format, channel, samplerate);
 	avsys_assert(handle != NULL);
 
-	if (channel < 1 || channel > 2)
+	if (channel < AVSYS_CHANNEL_MIN || channel > AVSYS_CHANNEL_MAX)
 		return AVSYS_STATE_ERR_DEVICE_NOT_SUPPORT;
 
 	device = (avsys_audio_pasimple_handle_t *)malloc(sizeof(avsys_audio_pasimple_handle_t));
@@ -93,6 +107,8 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 
 	ss.rate = samplerate;
 	ss.channels = channel;
+
+	pa_channel_map_init_auto(&channel_map, ss.channels, PA_CHANNEL_MAP_ALSA);
 
 	switch (format) {
 	case AVSYS_AUDIO_FORMAT_8BIT:
@@ -114,20 +130,31 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 	pa_proplist *proplist = pa_proplist_new();
 
 	/* Set policy property */
-	avsys_info(AVAUDIO, ">>>[%s] policy=[%d], vol_type=[%d]\n", __func__, policy, handle->gain_setting.vol_type);
+	avsys_info(AVAUDIO, ">>>[%s] policy=[%d], vol_type=[%d]\n", __func__, policy, vol_conf_type);
 	if (policy == AVSYS_AUDIO_HANDLE_ROUTE_HANDSET_ONLY) {
 		avsys_info(AVAUDIO, ": set media plicy to PHONE\n");
-		pa_proplist_sets(proplist, PA_PROP_MEDIA_POLICY, "phone");
+		pa_proplist_sets(proplist, PA_PROP_MEDIA_POLICY, MEDIA_POLICY_PHONE);
 	} else {
 		/* AVSYS_AUDIO_HANDLE_ROUTE_FOLLOWING_POLICY */
 		/* check stream type (vol type) */
-		if (handle->gain_setting.vol_type == AVSYS_AUDIO_VOLUME_TYPE_NOTIFICATION ||
-			handle->gain_setting.vol_type == AVSYS_AUDIO_VOLUME_TYPE_ALARM) {
+
+		switch (vol_conf_type)
+		{
+		case AVSYS_AUDIO_VOLUME_TYPE_NOTIFICATION:
+		case AVSYS_AUDIO_VOLUME_TYPE_ALARM:
 			avsys_info(AVAUDIO, ": set media plicy to ALL\n");
-			pa_proplist_sets(proplist, PA_PROP_MEDIA_POLICY, "all");
-		} else {
+			pa_proplist_sets(proplist, PA_PROP_MEDIA_POLICY, MEDIA_POLICY_ALL);
+			break;
+
+		case AVSYS_AUDIO_VOLUME_TYPE_FIXED:	/* Used for Emergency */
+			avsys_info(AVAUDIO, ": set media plicy to PHONE\n");
+			pa_proplist_sets(proplist, PA_PROP_MEDIA_POLICY, MEDIA_POLICY_PHONE);
+			break;
+
+		default:
 			avsys_info(AVAUDIO, ": set media plicy to AUTO\n");
-			pa_proplist_sets(proplist, PA_PROP_MEDIA_POLICY, "auto");
+			pa_proplist_sets(proplist, PA_PROP_MEDIA_POLICY, MEDIA_POLICY_AUTO);
+			break;
 		}
 	}
 
@@ -142,7 +169,7 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 					PA_SIMPLE_PERIODS_PER_BUFFER_DEFAULT,
 					0, -1, -1, -1, samples_per_period * device->samplesize);
 
-		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_RECORD, NULL, "CAPTURE", &ss, NULL, &attr, proplist, &err);
+		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_RECORD, NULL, "CAPTURE", &ss, &channel_map, &attr, proplist, &err);
 		break;
 
 	case AVSYS_AUDIO_MODE_INPUT_LOW_LATENCY:
@@ -151,7 +178,7 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 					PA_SIMPLE_PERIODS_PER_BUFFER_FASTMODE,
 					0, -1, -1, -1, samples_per_period * device->samplesize);
 
-		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_RECORD, NULL, "LOW LATENCY CAPTURE", &ss, NULL, &attr, proplist, &err);
+		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_RECORD, NULL, "LOW LATENCY CAPTURE", &ss, &channel_map, &attr, proplist, &err);
 		break;
 
 	case AVSYS_AUDIO_MODE_INPUT_HIGH_LATENCY:
@@ -160,7 +187,7 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 					PA_SIMPLE_PERIODS_PER_BUFFER_CAPTURE,
 					0, -1, -1, -1, samples_per_period * device->samplesize);
 
-		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_RECORD, NULL, "HIGH LATENCY CAPTURE", &ss, NULL, &attr, proplist, &err);
+		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_RECORD, NULL, "HIGH LATENCY CAPTURE", &ss, &channel_map, &attr, proplist, &err);
 		break;
 
 	case AVSYS_AUDIO_MODE_OUTPUT:	/* mid latency playback for normal audio case. */
@@ -169,7 +196,7 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 						PA_SIMPLE_PERIODS_PER_BUFFER_DEFAULT,
 						-1, -1, periods_per_buffer * samples_per_period * device->samplesize, attr.tlength, 0);
 
-		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "PLAYBACK", &ss, NULL, &attr, proplist, &err);
+		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "PLAYBACK", &ss, &channel_map, &attr, proplist, &err);
 		break;
 
 	case AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY:	/* This is special case for touch sound playback */
@@ -178,15 +205,15 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 					PA_SIMPLE_PERIODS_PER_BUFFER_FASTMODE,
 					samples_per_period * device->samplesize, -1, samples_per_period * device->samplesize + 3430, (uint32_t)-1, 0);
 
-		s = pa_simple_new_proplist(NULL,"AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "LOW LATENCY PLAYBACK", &ss, NULL, &attr, proplist, &err);
+		s = pa_simple_new_proplist(NULL,"AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "LOW LATENCY PLAYBACK", &ss, &channel_map, &attr, proplist, &err);
 		break;
 	case AVSYS_AUDIO_MODE_OUTPUT_CLOCK: /* high latency playback - lager buffer size */
-		SET_PA_ATTR(PA_SIMPLE_PERIOD_TIME_FOR_HIGH_LATENCY_MSEC,
+		SET_PA_ATTR(p_time,
 					MSEC_TO_SAMPLE(samplerate,period_time),
-					PA_SIMPLE_PERIODS_PER_BUFFER_PLAYBACK,
+					p_count,
 					(uint32_t) -1, (uint32_t) -1, periods_per_buffer * samples_per_period * device->samplesize, (uint32_t)-1, 0);
 
-		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "HIGH LATENCY PLAYBACK", &ss, NULL, &attr, proplist, &err);
+		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "HIGH LATENCY PLAYBACK", &ss, &channel_map, &attr, proplist, &err);
 		break;
 
 	case AVSYS_AUDIO_MODE_OUTPUT_VIDEO:	/* low latency playback */
@@ -195,7 +222,7 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 					PA_SIMPLE_PERIODS_PER_BUFFER_VIDEO,
 					4*(samples_per_period * device->samplesize), samples_per_period * device->samplesize, periods_per_buffer * samples_per_period * device->samplesize, (uint32_t)-1, 0);
 
-		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "LOW LATENCY PLAYBACK", &ss, NULL, &attr, proplist, &err);
+		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "LOW LATENCY PLAYBACK", &ss, &channel_map, &attr, proplist, &err);
 		break;
 
 	case AVSYS_AUDIO_MODE_OUTPUT_AP_CALL:
@@ -209,7 +236,7 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 					(uint32_t) -1, (uint32_t) -1, periods_per_buffer * samples_per_period * device->samplesize, attr.tlength, 0);
 
 
-		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "VoIP PLAYBACK", &ss, NULL, &attr, proplist, &err);
+		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "VoIP PLAYBACK", &ss, &channel_map, &attr, proplist, &err);
 #endif
 		break;
 	case AVSYS_AUDIO_MODE_INPUT_AP_CALL:
@@ -222,7 +249,7 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 					PA_SIMPLE_PERIODS_PER_BUFFER_DEFAULT,
 					0, (uint32_t) -1, (uint32_t) -1, (uint32_t) -1, samples_per_period * device->samplesize);
 
-		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_RECORD, NULL, "VoIP CAPTURE", &ss, NULL, &attr, proplist, &err);
+		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_RECORD, NULL, "VoIP CAPTURE", &ss, &channel_map, &attr, proplist, &err);
 #endif
 		break;
 	case AVSYS_AUDIO_MODE_CALL_OUT:
@@ -472,4 +499,41 @@ int avsys_audio_pasimple_get_period_buffer_time(avsys_audio_handle_t *handle, un
 
 	return AVSYS_STATE_SUCCESS;
 }
+
+int avsys_audio_pasimple_cork(avsys_audio_handle_t *handle, int cork)
+{
+	pa_simple *s = NULL;
+	avsys_audio_pasimple_handle_t *device = NULL;
+	int err = 0;
+
+	CHECK_VALID_HANDLE(handle);
+
+	s = (pa_simple *)device->pasimple_handle;
+
+	if (0 > pa_simple_cork(s, cork, &err)) {
+		avsys_error(AVAUDIO, "pa_simple_cork() failed with %s\n", pa_strerror(err));
+		return AVSYS_STATE_ERR_INTERNAL;
+	}
+
+	return AVSYS_STATE_SUCCESS;
+}
+
+int avsys_audio_pasimple_is_corked(avsys_audio_handle_t *handle, int *is_corked)
+{
+	pa_simple *s = NULL;
+	avsys_audio_pasimple_handle_t *device = NULL;
+	int err = 0;
+
+	if (is_corked == NULL)
+		return AVSYS_STATE_ERR_INTERNAL;
+
+	CHECK_VALID_HANDLE(handle);
+
+	s = (pa_simple *)device->pasimple_handle;
+
+	*is_corked = pa_simple_is_corked(s);
+
+	return AVSYS_STATE_SUCCESS;
+}
+
 

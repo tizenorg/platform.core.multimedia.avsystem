@@ -41,6 +41,13 @@
 #define AVSYS_AUDIO_VOLUME_MAX_BASIC		8
 #define AVSYS_AUDIO_VOLUME_MAX_SINGLE		1
 
+#define AVSYS_AUDIO_VOLUME_CONFIG_TYPE(vol) (vol & 0x00FF)
+#define AVSYS_AUDIO_VOLUME_CONFIG_GAIN(vol) (vol & 0xFF00)
+#define AVSYS_AUDIO_VOLUME_GAIN_IDX(gain) ((gain >> 8) - 1)
+
+#define AVSYS_CHANNEL_MIN	1
+#define AVSYS_CHANNEL_MAX	6
+
 /**
  * Enumerations for audio mode
  */
@@ -81,12 +88,26 @@ enum avsys_audio_volume_type_t {
 	AVSYS_AUDIO_VOLUME_TYPE_RINGTONE,
 	AVSYS_AUDIO_VOLUME_TYPE_MEDIA,
 	AVSYS_AUDIO_VOLUME_TYPE_CALL,
+	AVSYS_AUDIO_VOLUME_TYPE_VOIP,
 	AVSYS_AUDIO_VOLUME_TYPE_FIXED,
 	AVSYS_AUDIO_VOLUME_TYPE_EXT_SYSTEM_JAVA,
-	AVSYS_AUDIO_VOLUME_TYPE_MEDIA_HL,
 	AVSYS_AUDIO_VOLUME_TYPE_NUM,
 	AVSYS_AUDIO_VOLUME_TYPE_MAX = AVSYS_AUDIO_VOLUME_TYPE_NUM,
 	AVSYS_AUDIO_VOLUME_TYPE_EXT_SYSTEM_ANDROID = AVSYS_AUDIO_VOLUME_TYPE_FIXED,
+};
+
+enum avsys_audio_volume_gain_t {
+	AVSYS_AUDIO_VOLUME_GAIN_DIALER		= 1<<8,
+	AVSYS_AUDIO_VOLUME_GAIN_TOUCH		= 2<<8,
+	AVSYS_AUDIO_VOLUME_GAIN_AF			= 3<<8,
+	AVSYS_AUDIO_VOLUME_GAIN_SHUTTER1	= 4<<8,
+	AVSYS_AUDIO_VOLUME_GAIN_SHUTTER2	= 5<<8,
+	AVSYS_AUDIO_VOLUME_GAIN_CAMCORDING	= 6<<8,
+	AVSYS_AUDIO_VOLUME_GAIN_MIDI		= 7<<8,
+	AVSYS_AUDIO_VOLUME_GAIN_BOOTING		= 8<<8,
+	AVSYS_AUDIO_VOLUME_GAIN_VIDEO		= 9<<8,
+	AVSYS_AUDIO_VOLUME_GAIN_VIDEO_HDMI	= 10<<8,
+	AVSYS_AUDIO_VOLUME_GAIN_TYPE_MAX,
 };
 
 enum avsys_audio_priority_t {
@@ -143,7 +164,7 @@ typedef struct {
 	int		channels;					/**< Number of channels */
 	int		samplerate;					/**< Sampling rate */
 	int		format;						/**< Sampling format */
-	int		bluetooth;					/**< Handle route information. refer. avsys_audio_handle_route_t */
+	int		handle_route;				/**< Handle route information. refer. avsys_audio_handle_route_t */
 	int		vol_type;					/**< volume type */
 	int		allow_mix;
 } avsys_audio_param_t;
@@ -169,6 +190,8 @@ enum avsys_audio_path_ex {
 	AVSYS_AUDIO_PATH_EX_A2DP,
 	AVSYS_AUDIO_PATH_EX_HANDSFREE,
 	AVSYS_AUDIO_PATH_EX_HDMI,
+	AVSYS_AUDIO_PATH_EX_DOCK,
+	AVSYS_AUDIO_PATH_EX_USBAUDIO,
 	AVSYS_AUDIO_PATH_EX_OUTMAX,
 	AVSYS_AUDIO_PATH_EX_MIC = 1,
 	AVSYS_AUDIO_PATH_EX_HEADSETMIC,
@@ -224,15 +247,11 @@ typedef enum {
 
 /* path option */
 #define AVSYS_AUDIO_PATH_OPTION_NONE			0x00000000	/*!< Sound path option none */
-#define AVSYS_AUDIO_PATH_OPTION_JACK_AUTO		0x00000001	/*!< Sound path auto change between SPK/Recv and headset */
 #define AVSYS_AUDIO_PATH_OPTION_DUAL_OUT		0x00000002	/*!< SPK or Recv with headset sound path. used for Ringtone or Alarm */
-#define AVSYS_AUDIO_PATH_OPTION_LEFT_SPK_ONLY	0x00000004	/*!< AP playback left speaker only */
-#define AVSYS_AUDIO_PATH_OPTION_RIGHT_SPK_ONLY	0x00000008	/*!< AP playback right speaker only */
 #define AVSYS_AUDIO_PATH_OPTION_VOICECALL_REC	0x00000010	/*!< Voice call recording path option */
 #define AVSYS_AUDIO_PATH_OPTION_USE_SUBMIC		0x00000020	/*!< Use sub-mic when call or recording */
 #define AVSYS_AUDIO_PATH_OPTION_USE_STEREOMIC	0x00000040	/*!< Use stereo mic when recording */
 #define AVSYS_AUDIO_PATH_OPTION_FORCED			0x01000000	/*!< Forced sound path setting. only for booting animation */
-#define AVSYS_AUDIO_PATH_OPTION_LEGACY_MODE		0x10000000	/*!< Now Plus Style */
 
 
 /**
@@ -261,6 +280,18 @@ int avsys_audio_open(avsys_audio_param_t *param, avsys_handle_t *phandle, int *s
  * @see
  */
 int avsys_audio_close(avsys_handle_t handle);
+
+/**
+ * This function is to update volume type & volume gain.
+ *
+ * @param	handle		[in]	Handle of audio system
+ *
+ * @return	This function returns AVSYS_STATE_SUCCESS on success, or negative
+ *			value with error code.
+ * @remark
+ * @see
+ */
+int avsys_audio_update_volume_config(avsys_handle_t handle, int volume_config);
 
 /**
  * This function is to stop playback stream immediately. this drops all buffer remaining data.
@@ -335,8 +366,10 @@ int avsys_audio_read(avsys_handle_t handle, void *buf, int size);
  */
 int avsys_audio_write(avsys_handle_t handle, void *buf, int size);
 
-int avsys_audio_set_volume_table(int gain_type, int dev_type, int step, int lv, int rv);
-int avsys_audio_get_volume_table(int gain_type, int dev_type, int step, int *lv, int *rv);
+int avsys_audio_set_volume_table(int volume_type, int dev_type, int step, int lv, int rv);
+int avsys_audio_get_volume_table(int volume_type, int dev_type, int step, int *lv, int *rv);
+int avsys_audio_set_volume_gain_table(int volume_gain_idx, int dev_type, float lv, float rv);
+int avsys_audio_get_volume_gain_table(int volume_gain_idx, int dev_type, float *lv, float *rv);
 
 int avsys_audio_set_volume_fadeup(avsys_handle_t handle);
 
@@ -551,16 +584,30 @@ int avsys_audio_reset(avsys_handle_t handle);
 int avsys_audio_get_period_buffer_time(avsys_handle_t handle, unsigned int *period_time, unsigned int *buffer_time);
 
 /**
- * This function is to get playback audio device information of system.
+ * This function is to cork stream.
  *
- * @param	dev	[out]	current playback device type
+ * @param	handle		[in]	handle to cork
+ * @param	cork		[in]	cork=1, uncork=0
  *
  * @return	This function returns AVSYS_STATE_SUCCESS on success, or negative
  *			value with error code.
  * @remark
- * @see		avsys_audio_playing_devcie_t
+ * @see
  */
-int avsys_audio_get_playing_device_info(avsys_audio_playing_devcie_t *dev);
+int avsys_audio_cork (avsys_handle_t handle, int cork);
+
+/**
+ * This function is to check whether stream is corked or not.
+ *
+ * @param	handle		[in]	handle to cork
+ * @param	is_corked	[out]	corked is 1, otherwise 0
+ *
+ * @return	This function returns AVSYS_STATE_SUCCESS on success, or negative
+ *			value with error code.
+ * @remark
+ * @see
+ */
+int avsys_audio_is_corked (avsys_handle_t handle, int *is_corked);
 
 /**
  * This function is to get audio capturing status of system.
@@ -580,6 +627,7 @@ int avsys_audio_earjack_manager_init(int *earjack_type, int *waitfd);
 int avsys_audio_earjack_manager_wait(int waitfd, int *current_earjack_type, int *new_earjack_type, int *need_mute);
 int avsys_audio_earjack_manager_process(int new_earjack_type);
 int avsys_audio_earjack_manager_deinit(int waitfd);
+int avsys_audio_earjack_manager_get_type(void);
 int avsys_audio_earjack_manager_unlock(void);
 
 int avsys_audio_set_route_policy(avsys_audio_route_policy_t route);

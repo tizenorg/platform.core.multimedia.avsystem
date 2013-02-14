@@ -53,82 +53,10 @@ enum avsys_audio_capture_gain{
 };
 
 enum avsys_audio_ear_ctrl {
-	AVSYS_AUDIO_EAR_SWITCH_MANUAL,
-	AVSYS_AUDIO_EAR_SWITCH_AUTO_WITH_MUTE,
+	AVSYS_AUDIO_EAR_SWITCH_AUTO_WITH_MUTE = 1,
 	AVSYS_AUDIO_EAR_SWITCH_AUTO_WITHOUT_MUTE,
 };
 
-struct avsys_audio_jack_event {
-	struct timeval time;
-	unsigned short type;
-	unsigned short code;
-	int value;
-};
-
-#define PATH_MASK_MAX	23
-#define GAIN_MASK_MAX	30
-/* sound path status bit */
-#define PS_PATH_NONE				(0)
-#define PS_AP_TO_SPK			(1 << 0)
-#define PS_AP_TO_HEADSET		(1 << 1)
-#define PS_AP_TO_RECV			(1 << 2)
-#define PS_AP_TO_HDMI			(1 << 3)
-#define PS_AP_TO_BT				(1 << 4)
-#define PS_AP_TO_MODEM			(1 << 5)
-#define PS_MODEM_TO_SPK			(1 << 6)
-#define PS_MODEM_TO_HEADSET		(1 << 7)
-#define PS_MODEM_TO_RECV		(1 << 8)
-#define PS_MODEM_TO_BT			(1 << 9)
-#define PS_MODEM_TO_AP			(1 << 10)
-#define PS_FMRADIO_TO_SPK		(1 << 11)
-#define PS_FMRADIO_TO_HEADSET	(1 << 12)
-#define PS_MAINMIC_TO_AP		(1 << 13)
-#define PS_MAINMIC_TO_MODEM		(1 << 14)
-#define PS_SUBMIC_TO_AP			(1 << 15)
-#define PS_SUBMIC_TO_MODEM		(1 << 16)
-#define PS_STEREOMIC_TO_AP		(1 << 17)
-#define PS_EARMIC_TO_AP			(1 << 18)
-#define PS_EARMIC_TO_MODEM		(1 << 19)
-#define PS_BTMIC_TO_AP			(1 << 20)
-#define PS_BTMIC_TO_MODEM		(1 << 21)
-#define PS_FMRADIO_TO_AP		(1 << 22)
-#define PS_CODEC_DISABLE_ON_SUSPEND	(1 << 23)
-#define PS_CP_TO_AP		(1 << PATH_MASK_MAX)
-
-
-/* hw gain status enum */
-#define GS_GAIN_NONE				(0)
-#define GS_AP_TO_SPK				(1 << 0)
-#define GS_AP_TO_SPK_CALLALERT		(1 << 1)
-#define GS_AP_TO_HEADSET			(1 << 2)
-#define GS_AP_TO_HEADSET_CALLALERT	(1 << 3)
-#define GS_AP_TO_RECV				(1 << 4)
-#define GS_AP_TO_HDMI				(1 << 5)
-#define GS_AP_TO_BT					(1 << 6)
-#define GS_AP_TO_MODEM				(1 << 7)
-#define GS_MODEM_TO_SPK_VOICE		(1 << 8)
-#define GS_MODEM_TO_HEADSET_VOICE	(1 << 9)
-#define GS_MODEM_TO_RECV_VOICE		(1 << 10)
-#define GS_MODEM_TO_BT_VOICE		(1 << 11)
-#define GS_MODEM_TO_AP_VOICE		(1 << 12)
-#define GS_MODEM_TO_SPK_VIDEO		(1 << 13)
-#define GS_MODEM_TO_HEADSET_VIDEO	(1 << 14)
-#define GS_MODEM_TO_RECV_VIDEO		(1 << 15)
-#define GS_MODEM_TO_BT_VIDEO		(1 << 16)
-#define GS_MODEM_TO_AP_VIDEO		(1 << 17)
-#define GS_FMRADIO_TO_SPK			(1 << 18)
-#define GS_FMRADIO_TO_HEADSET		(1 << 19)
-#define GS_MAINMIC_TO_AP			(1 << 20)
-#define GS_MAINMIC_TO_MODEM_VOICE	(1 << 21)
-#define GS_SUBMIC_TO_AP				(1 << 22)
-#define GS_SUBMIC_TO_MODEM_VOICE	(1 << 23)
-#define GS_STEREOMIC_TO_AP			(1 << 24)
-#define GS_EARMIC_TO_AP				(1 << 25)
-#define GS_EARMIC_TO_MODEM_VOICE	(1 << 26)
-#define GS_BTMIC_TO_AP				(1 << 27)
-#define GS_BTMIC_TO_MODEM_VOICE		(1 << 28)
-#define GS_FMRADIO_TO_AP			(1 << 29)
-#define GS_CP_TO_AP					(1 << GAIN_MASK_MAX)
 
 #define TYPE_EVENT_SWITCH			0x05
 #define CODE_HEADPHONE_INSERT		0x02
@@ -137,7 +65,6 @@ struct avsys_audio_jack_event {
 #define CODE_JACK_PHYSICAL_INSERT	0x07
 
 #define PATH_FIXED_NONE                     (0x00000000)
-#define PATH_FIXED_WITH_FMRADIO     (1 << PATH_FIXED_TYPE_FMRADIO)  /* 0x00000001 */
 #define PATH_FIXED_WITH_CALL            (1 << PATH_FIXED_TYPE_CALL)         /* 0x00000002 */
 
 enum avsys_audio_amp_t {
@@ -186,23 +113,13 @@ typedef struct {
 	int inserted;
 	int ear_auto;
 
-	/* for alsa scenario, aquila */
-	gain_status_t gain_status;
-	path_status_t path_status;
-
-	gain_status_t p_gain_status;
-	path_status_t p_path_status;
-
 	int lvol_dev_type;
-	int gain_debug_mode;
+	bool control_aif_before_path_set;
+	bool wb_enabled;
+	bool gain_debug_mode;
 
 	/* For Lock debugging */
 	pid_t pathlock_pid[AVSYS_AUDIO_LOCK_SLOT_MAX];
-
-	/* system route policy */
-	avsys_audio_route_policy_t route_policy;
-	int a2dp_status;
-	int  earpiece_on;
 } avsys_audio_path_ex_info_t;
 
 int avsys_audio_path_ex_init(void);
@@ -225,7 +142,6 @@ int avsys_audio_path_earjack_unlock(void);
 
 int avsys_audio_path_set_route_policy(avsys_audio_route_policy_t route);
 int avsys_audio_path_get_route_policy(avsys_audio_route_policy_t *route);
-int avsys_audio_path_check_loud(bool *loud);
 int avsys_audio_path_check_cp_audio(bool *cpaudio, bool *btpath);
 int avsys_audio_path_set_single_ascn(char *str);
 

@@ -34,12 +34,13 @@
 #include "avsys-audio-logical-volume.h"
 #include "avsys-audio-pactrl.h"
 
-#define DEFAULT_VOLUME_SYSTEM 2
-#define DEFAULT_VOLUME_RINGTONE 6
-#define DEFAULT_VOLUME_MEDIA 11
-#define DEFAULT_VOLUME_NOTIFICATION 6
-#define DEFAULT_VOLUME_ALARM 6
-#define DEFAULT_VOLUME_CALL 6
+#define DEFAULT_VOLUME_SYSTEM 5
+#define DEFAULT_VOLUME_NOTIFICATION 7
+#define DEFAULT_VOLUME_ALARM 7
+#define DEFAULT_VOLUME_RINGTONE 13
+#define DEFAULT_VOLUME_MEDIA 7
+#define DEFAULT_VOLUME_CALL 7
+#define DEFAULT_VOLUME_VOIP 7
 #define DEFAULT_VOLUME_FIXED 0
 #define DEFAULT_VOLUME_JAVA 11
 
@@ -63,6 +64,18 @@
 		return AVSYS_STATE_ERR_INTERNAL; \
 	} \
 } while (0)
+
+static int g_default_volume[AVSYS_AUDIO_VOLUME_TYPE_MAX] = {
+	DEFAULT_VOLUME_SYSTEM,			/* AVSYS_AUDIO_VOLUME_TYPE_SYSTEM */
+	DEFAULT_VOLUME_NOTIFICATION,	/* AVSYS_AUDIO_VOLUME_TYPE_NOTIFICATION */
+	DEFAULT_VOLUME_ALARM,			/* AVSYS_AUDIO_VOLUME_TYPE_ALARM */
+	DEFAULT_VOLUME_RINGTONE,		/* AVSYS_AUDIO_VOLUME_TYPE_RINGTONE */
+	DEFAULT_VOLUME_MEDIA,			/* AVSYS_AUDIO_VOLUME_TYPE_MEDIA */
+	DEFAULT_VOLUME_CALL,			/* AVSYS_AUDIO_VOLUME_TYPE_CALL */
+	DEFAULT_VOLUME_VOIP,			/* AVSYS_AUDIO_VOLUME_TYPE_VOIP */
+	DEFAULT_VOLUME_FIXED,			/* AVSYS_AUDIO_VOLUME_TYPE_FIXED */
+	DEFAULT_VOLUME_JAVA,			/* AVSYS_AUDIO_VOLUME_TYPE_EXT_SYSTEM_JAVA */
+};
 
 EXPORT_API
 int avsys_audio_handle_init(void)
@@ -96,15 +109,7 @@ int avsys_audio_handle_init(void)
 	/* init allocted bits */
 	control->allocated = 0;
 	control->handle_amp = 0;
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_0] = DEFAULT_VOLUME_SYSTEM;
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_1] = DEFAULT_VOLUME_NOTIFICATION;
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_2] = DEFAULT_VOLUME_ALARM;
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_3] = DEFAULT_VOLUME_RINGTONE;
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_4] = DEFAULT_VOLUME_MEDIA;
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_5] = DEFAULT_VOLUME_CALL;
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_6] = DEFAULT_VOLUME_FIXED;
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_7] = DEFAULT_VOLUME_JAVA;
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_8] = DEFAULT_VOLUME_MEDIA;
+	memcpy(control->volume_value, (int *)g_default_volume, sizeof(int) * AVSYS_AUDIO_VOLUME_TYPE_MAX);
 	control->ext_device_amp = AVSYS_AUDIO_HANDLE_EXT_DEV_NONE;
 	control->primary_volume_pid = 0;
 	control->primary_volume_type = -1;
@@ -146,11 +151,7 @@ int avsys_audio_handle_reset(int *volume_value)
 	long long int flag = 0x01;
 	avsys_audio_handle_info_t *control = NULL;
 	avsys_audio_handle_info_t **temp = NULL;
-	int *lvolume = NULL;
-	int default_volume[] = { DEFAULT_VOLUME_SYSTEM, DEFAULT_VOLUME_NOTIFICATION,
-						DEFAULT_VOLUME_ALARM, DEFAULT_VOLUME_RINGTONE,
-						DEFAULT_VOLUME_MEDIA, DEFAULT_VOLUME_CALL,
-						DEFAULT_VOLUME_FIXED, DEFAULT_VOLUME_JAVA};
+	int * volumes;
 	temp = &control;
 
 	/* Check root user */
@@ -165,11 +166,7 @@ int avsys_audio_handle_reset(int *volume_value)
 		return AVSYS_STATE_ERR_NULL_POINTER;
 	}
 
-	if (volume_value == NULL) {
-		lvolume = default_volume;
-	} else {
-		lvolume = volume_value;
-	}
+	volumes = (volume_value) ? volume_value : (int *)g_default_volume;
 
 	for (i = 0; i < AVSYS_AUDIO_HANDLE_MAX; i++) {
 		if (control->allocated & (flag << i)) {	/* allocated condition */
@@ -182,6 +179,7 @@ int avsys_audio_handle_reset(int *volume_value)
 		}
 	}
 
+#ifdef USE_HIBERNATION
 	while (control->allocated) {
 		if (++i > 5)
 			break;
@@ -189,21 +187,14 @@ int avsys_audio_handle_reset(int *volume_value)
 		printf("(%d)Waiting...0.5 sec for resume from hibernation\n", i);
 		usleep(500);
 	}
+#endif
 
 	AVSYS_LOCK_SYNC();
 	if (volume_value == NULL) {
 		control->allocated = 0;
 		control->handle_amp = 0;
 	}
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_0] = lvolume[0]; /* DEFAULT_VOLUME_SYSTEM */
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_1] = lvolume[1]; /* DEFAULT_VOLUME_NOTIFICATION */
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_2] = lvolume[2]; /* DEFAULT_VOLUME_ALARM */
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_3] = lvolume[3]; /* DEFAULT_VOLUME_RINGTONE */
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_4] = lvolume[4]; /* DEFAULT_VOLUME_MEDIA */
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_5] = lvolume[5]; /* DEFAULT_VOLUME_CALL */
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_6] = lvolume[6]; /* DEFAULT_VOLUME_FIXED */
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_7] = lvolume[7]; /* DEFAULT_VOLUME_JAVA */
-	control->volume_value[AVSYS_AUDIO_LVOL_GAIN_TYPE_8] = lvolume[4]; /* DEFAULT_VOLUME_MEDIA */
+	memcpy(control->volume_value, volumes, sizeof(int) * AVSYS_AUDIO_VOLUME_TYPE_MAX);
 	control->ext_device_amp = AVSYS_AUDIO_HANDLE_EXT_DEV_NONE;
 	control->primary_volume_pid = 0;
 	control->primary_volume_type = -1;
@@ -362,13 +353,14 @@ int avsys_audio_handle_dump(void)
 			if(control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT || control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_CLOCK ||
 					control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_VIDEO || control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY
 					|| control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_AP_CALL) {
+				int vol_conf_type = AVSYS_AUDIO_VOLUME_CONFIG_TYPE(control->handles[i].gain_setting.volume_config);
 				if (control->handles[i].dirty_volume) {
-					fprintf(stdout, " Dirty volume          : %s\n", vol_str[control->handles[i].gain_setting.vol_type]);
+					fprintf(stdout, " Dirty volume          : %s\n", vol_str[vol_conf_type]);
 				} else {
-					fprintf(stdout, " Volume Type           : %s\n", vol_str[control->handles[i].gain_setting.vol_type]);
+					fprintf(stdout, " Volume Type           : %s\n", vol_str[vol_conf_type]);
 				}
 				fprintf(stdout, " Target device         : %s\n", dev_str[control->handles[i].gain_setting.dev_type]);
-				fprintf(stdout, " Maximum Len           : %2d\n", control->handles[i].gain_setting.max_len);
+				fprintf(stdout, " Maximum Level         : %2d\n", control->handles[i].gain_setting.max_level);
 				fprintf(stdout, " UI setted volume      : L:%3d R:%3d\n", control->handles[i].setting_vol.level[0], control->handles[i].setting_vol.level[1]);
 				fprintf(stdout, " Real working volume   : L:%3d R:%3d\n", control->handles[i].working_vol.level[0], control->handles[i].working_vol.level[1]);
 			}
@@ -402,12 +394,12 @@ int avsys_audio_handle_dump(void)
 	for (i = 0; i < control->volume_value[AVSYS_AUDIO_VOLUME_TYPE_MEDIA]; i++)
 		fprintf(stdout, "+");
 	fprintf(stdout, "\n");
-	fprintf(stdout, " Volume [MediaHL]      : %2d ", control->volume_value[AVSYS_AUDIO_VOLUME_TYPE_MEDIA_HL]);
-	for (i = 0; i < control->volume_value[AVSYS_AUDIO_VOLUME_TYPE_MEDIA_HL]; i++)
-		fprintf(stdout, "+");
-	fprintf(stdout, "\n");
 	fprintf(stdout, " Volume [Call]         : %2d ", control->volume_value[AVSYS_AUDIO_VOLUME_TYPE_CALL]);
 	for (i = 0; i < control->volume_value[AVSYS_AUDIO_VOLUME_TYPE_CALL]; i++)
+		fprintf(stdout, "+");
+	fprintf(stdout, "\n");
+	fprintf(stdout, " Volume [VOIP]         : %2d ", control->volume_value[AVSYS_AUDIO_VOLUME_TYPE_VOIP]);
+	for (i = 0; i < control->volume_value[AVSYS_AUDIO_VOLUME_TYPE_VOIP]; i++)
 		fprintf(stdout, "+");
 	fprintf(stdout, "\n");
 	fprintf(stdout, " Volume [Android]      : %2d ", control->volume_value[AVSYS_AUDIO_VOLUME_TYPE_EXT_SYSTEM_ANDROID]);
@@ -799,11 +791,12 @@ int avsys_audio_handle_current_playing_volume_type(int *type)
 		long long int flag = 0x01;
 		flag <<= i;
 		if (control->allocated & flag) {
+			int vol_conf_type = AVSYS_AUDIO_VOLUME_CONFIG_TYPE(control->handles[i].gain_setting.volume_config);
 			if(control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT ||
 					control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_CLOCK ||
 					control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_VIDEO ||
 					control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY ) {
-				used_table[control->handles[i].gain_setting.vol_type] = 1;
+				used_table[vol_conf_type] = 1;
 			}
 			else if(control->handles[i].mode == AVSYS_AUDIO_MODE_INPUT ||
 					control->handles[i].mode == AVSYS_AUDIO_MODE_INPUT_HIGH_LATENCY ||
@@ -816,11 +809,11 @@ int avsys_audio_handle_current_playing_volume_type(int *type)
 		used_table[AVSYS_AUDIO_VOLUME_TYPE_MEDIA] = 1;
 	}
 
-	avsys_warning(AVAUDIO,"Call[%d] Ringtone[%d] Media[%d] MediaHL[%d] Alarm[%d] Notification[%d] System[%d] Android[%d] Java[%d] Capture[%d]\n",
+	avsys_warning(AVAUDIO,"Call[%d] VOIP[%d] Ringtone[%d] Media[%d] Alarm[%d] Notification[%d] System[%d] Android[%d] Java[%d] Capture[%d]\n",
 			used_table[AVSYS_AUDIO_VOLUME_TYPE_CALL],
+			used_table[AVSYS_AUDIO_VOLUME_TYPE_VOIP],
 			used_table[AVSYS_AUDIO_VOLUME_TYPE_RINGTONE],
 			used_table[AVSYS_AUDIO_VOLUME_TYPE_MEDIA],
-			used_table[AVSYS_AUDIO_VOLUME_TYPE_MEDIA_HL],
 			used_table[AVSYS_AUDIO_VOLUME_TYPE_ALARM],
 			used_table[AVSYS_AUDIO_VOLUME_TYPE_NOTIFICATION],
 			used_table[AVSYS_AUDIO_VOLUME_TYPE_SYSTEM],
@@ -830,7 +823,7 @@ int avsys_audio_handle_current_playing_volume_type(int *type)
 
 	if (control->primary_volume_pid > 2 && AVSYS_FAIL(avsys_check_process(control->primary_volume_pid))) {
 		avsys_warning(AVAUDIO, "Primary volume set pid does not exist anymore. clean primary volume\n");
-		control->primary_volume_type = 1;
+		control->primary_volume_type = -1;
 		control->primary_volume_pid = 0;
 	}
 
@@ -839,11 +832,11 @@ int avsys_audio_handle_current_playing_volume_type(int *type)
 		avsys_warning(AVAUDIO, "Primary volume is %d\n", control->primary_volume_type);
 	} else if (used_table[AVSYS_AUDIO_VOLUME_TYPE_CALL]) {
 		*type = AVSYS_AUDIO_VOLUME_TYPE_CALL;
+	} else if (used_table[AVSYS_AUDIO_VOLUME_TYPE_VOIP]) {
+		*type = AVSYS_AUDIO_VOLUME_TYPE_VOIP;
 	} else if (used_table[AVSYS_AUDIO_VOLUME_TYPE_RINGTONE]) {
 		*type = AVSYS_AUDIO_VOLUME_TYPE_RINGTONE;
 	} else if (used_table[AVSYS_AUDIO_VOLUME_TYPE_MEDIA]) {
-		*type = AVSYS_AUDIO_VOLUME_TYPE_MEDIA;
-	} else if (used_table[AVSYS_AUDIO_VOLUME_TYPE_MEDIA_HL]) {
 		*type = AVSYS_AUDIO_VOLUME_TYPE_MEDIA;
 	} else if (used_table[AVSYS_AUDIO_VOLUME_TYPE_ALARM]) {
 		*type = AVSYS_AUDIO_VOLUME_TYPE_ALARM;
@@ -869,23 +862,22 @@ int avsys_audio_handle_current_playing_volume_type(int *type)
 }
 
 
-int avsys_audio_handle_update_volume(avsys_audio_handle_t *p, const int vol_type)
+int avsys_audio_handle_update_volume(avsys_audio_handle_t *p, const int volume_config)
 {
 	int result = AVSYS_STATE_SUCCESS;
 	avsys_audio_handle_info_t *control = NULL;
 	avsys_audio_handle_info_t **temp = NULL;
-	temp = &control;
-
 	avsys_audio_volume_t *set_volume = NULL;
-	int volume_type = vol_type;
+	int vol_conf_type = AVSYS_AUDIO_VOLUME_CONFIG_TYPE(volume_config);
 
+	temp = &control;
 	AVSYS_GET_SHM(temp,AVSYS_STATE_ERR_INTERNAL);
 
 	AVSYS_LOCK_SYNC();
 
 	set_volume = &(p->setting_vol);
-	set_volume->level[AVSYS_AUDIO_CHANNEL_LEFT] = control->volume_value[volume_type];
-	set_volume->level[AVSYS_AUDIO_CHANNEL_RIGHT] = control->volume_value[volume_type];
+	set_volume->level[AVSYS_AUDIO_CHANNEL_LEFT] = control->volume_value[vol_conf_type];
+	set_volume->level[AVSYS_AUDIO_CHANNEL_RIGHT] = control->volume_value[vol_conf_type];
 	result = avsys_audio_logical_volume_convert(set_volume, &(p->working_vol), &(p->gain_setting));
 
 	AVSYS_UNLOCK_SYNC();
@@ -912,8 +904,9 @@ int avsys_audio_handle_update_volume_by_type(const int volume_type, const int vo
 		int mode;
 		avsys_audio_volume_t *set_volume = NULL;
 		long long int flag = 0x01;
-		flag <<= i;
+		int vol_conf_type = AVSYS_AUDIO_VOLUME_CONFIG_TYPE(control->handles[i].gain_setting.volume_config);
 
+		flag <<= i;
 		if ((control->allocated & flag) == 0) {
 			continue;
 		}
@@ -924,7 +917,7 @@ int avsys_audio_handle_update_volume_by_type(const int volume_type, const int vo
 			continue;
 		}
 
-		if (control->handles[i].gain_setting.vol_type != volume_type) {
+		if (vol_conf_type != volume_type) {
 			continue;
 		}
 
@@ -1000,13 +993,12 @@ int avsys_audio_handle_set_primary_volume_type(const int pid, const int type, co
 int avsys_audio_handle_update_priority(int handle, int priority, int handle_route, int cmd)
 {
 	long long int flag = 0x01;
-	int path_mute = 0, i = 0;
+	int i = 0;
 	char high_priority_exist = 0;
 	char transition_effect = 0;
 	int lpriority = AVSYS_AUDIO_HANDLE_PRIORITY_TYPE_0;
 	avsys_audio_handle_info_t *control = NULL;
 	avsys_audio_handle_info_t **temp = NULL;
-	int sink_info = 0;
 
 	temp = &control;
 

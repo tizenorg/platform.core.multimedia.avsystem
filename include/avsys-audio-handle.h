@@ -97,7 +97,7 @@ enum {
 
 int avsys_audio_handle_init(void);
 int avsys_audio_handle_fini(void);
-int avsys_audio_handle_reset(int *);
+int avsys_audio_handle_reset(int *volume_value);
 int avsys_audio_handle_dump(void);
 int avsys_audio_handle_rejuvenation(void);
 int avsys_audio_handle_alloc(int *handle);
@@ -109,7 +109,7 @@ int avsys_audio_handle_ext_dev_set_mute(avsysaudio_ext_device_t device_type, int
 int avsys_audio_handle_ext_dev_status(avsysaudio_ext_device_t device_type, int *onoff);
 int avsys_audio_handle_ext_dev_status_update(avsysaudio_ext_device_t device_type, int onoff);
 int avsys_audio_handle_current_playing_volume_type(int *type);
-int avsys_audio_handle_update_volume(avsys_audio_handle_t *p, const int vol_type);
+int avsys_audio_handle_update_volume(avsys_audio_handle_t *p, const int volume_config);
 int avsys_audio_handle_update_volume_by_type(const int volume_type, const int volume_value);
 int avsys_audio_handle_set_primary_volume_type(const int pid, const int type, const int command);
 int avsys_audio_handle_update_priority(int handle, int priority, int handle_route, int cmd);

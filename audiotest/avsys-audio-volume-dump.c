@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 	}
 	else if(argc == 1)
 	{
-		strncpy(filepath, VOLUME_FILE_PATH, sizeof(filepath)-1);
+		strncpy(filepath, AVSYS_VOLUME_INI_TEMP_PATH, sizeof(filepath)-1);
 		fprintf(stderr,"Use default file path %s\n", filepath);
 	}
 

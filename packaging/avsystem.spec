@@ -1,11 +1,18 @@
-
 Name:       avsystem
 Summary:    Audio Video System
-Version:    0.3.50
+Version:    0.5.3
 Release:    1
-Group:      TO_BE/FILLED_IN
-License:    TO BE FILLED IN
-Source0:    avsystem-%{version}.tar.bz2
+Group:      System/Libraries
+License:    Apache-2.0
+Source0:    avsystem-%{version}.tar.gz
+Source101:  packaging/avsystem.service
+
+Requires(post): /sbin/ldconfig
+Requires(post): /usr/bin/systemctl
+Requires(postun): /sbin/ldconfig
+Requires(postun): /usr/bin/systemctl
+Requires(preun): /usr/bin/systemctl
+
 BuildRequires: pkgconfig(alsa)
 BuildRequires: pkgconfig(iniparser)
 BuildRequires: pkgconfig(mm-ta)
@@ -35,39 +42,55 @@ Audio Video System Development headers and libraries.
 %build
 %autogen
 %configure \
-%ifarch %{ix86}
-	--enable-slp2 --enable-aquila --enable-pasimple 
+%if 0%{?simulator}
+	--enable-audiotest --enable-sdk
 %else
-        --enable-slp2 --enable-sdk --enable-aquila --enable-pasimple
+	--enable-audiotest
 %endif
 
 make %{?jobs:-j%jobs}
 
 %install
-rm -rf %{buildroot}
 %make_install
 
+mkdir -m 755 -p %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/
+ln -s ../init.d/snd_init %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S15snd_init
+mkdir -m 755 -p %{buildroot}/%{_sysconfdir}/rc.d/rc4.d/
+ln -s ../init.d/snd_init %{buildroot}/%{_sysconfdir}/rc.d/rc4.d/S15snd_init
 
+mkdir -m 755 -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
+install -m 0644 %SOURCE101 %{buildroot}%{_libdir}/systemd/system/avsystem.service
+ln -s ../avsystem.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/avsystem.service
 
-%post -p /sbin/ldconfig
+%preun
+if [ $1 == 0 ]; then
+    systemctl stop avsystem.service
+fi
+
+%post
+/sbin/ldconfig
+systemctl daemon-reload
+if [ $1 == 1 ]; then
+    systemctl restart avsystem.service
+fi
+
+%postun
+/sbin/ldconfig
+systemctl daemon-reload
 
 %files
+%manifest avsystem.manifest
 %defattr(-,root,root,-)
-/etc/rc.d/init.d/snd_init
-/usr/bin/camera_caps_generator
-/usr/bin/sound_initializer
-/usr/lib/libavsysaudio.so.0
-/usr/lib/libavsysaudio.so.0.0.1
-/usr/lib/libavsyscamera.so.0
-/usr/lib/libavsyscamera.so.0.0.0
+%{_sysconfdir}/rc.d/init.d/snd_init
+%{_sysconfdir}/rc.d/rc3.d/S15snd_init
+%{_sysconfdir}/rc.d/rc4.d/S15snd_init
+%{_bindir}/*
+%{_libdir}/lib*.so.*
+%{_libdir}/systemd/system/avsystem.service
+%{_libdir}/systemd/system/multi-user.target.wants/avsystem.service
 
 %files devel
-/usr/lib/libavsysaudio.so
-/usr/lib/pkgconfig/*.pc
-/usr/lib/libavsyscamera.so
-/usr/include/avsystem/avsys-audio.h
-/usr/include/avsystem/avsys-cam-exif.h
-/usr/include/avsystem/avsys-cam.h
-/usr/include/avsystem/avsys-error.h
-/usr/include/avsystem/avsys-types.h
-/usr/include/avsystem/avsystem.h
+%manifest avsystem.manifest
+%{_libdir}/pkgconfig/*.pc
+%{_libdir}/*.so
+/usr/include/avsystem/*.h
