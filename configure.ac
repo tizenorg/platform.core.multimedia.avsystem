@@ -71,6 +71,10 @@ PKG_CHECK_MODULES(ASCN, libascenario)
 AC_SUBST(ASCN_CFLAGS)
 AC_SUBST(ASCN_LIBS)
 
+PKG_CHECK_MODULES(INIPARSER, iniparser)
+AC_SUBST(INIPARSER_CFLAGS)
+AC_SUBST(INIPARSER_LIBS)
+
 # Checks for header files.
 AC_HEADER_STDC
 AC_CHECK_HEADERS([fcntl.h memory.h stdlib.h string.h sys/time.h unistd.h errno.h sys/types.h sys/stat.h])

@@ -68,9 +68,21 @@ void __fini_module(void);
 	}	\
 } while (0)
 
+#define AVSYS_STREAM_LOCK() do {	\
+	pthread_mutex_lock(&gmutex);\
+	avsys_info(AVAUDIO, "(+) LOCKED\n");	\
+} while (0)
+
+#define AVSYS_STREAM_UNLOCK() do {	\
+	pthread_mutex_unlock(&gmutex);\
+	avsys_info(AVAUDIO, "(-) UNLOCKED\n");	\
+} while (0)
+
 /**
  * Internal global variable
  */
+static pthread_mutex_t gmutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 /****************************************************************************
  *
@@ -91,7 +103,7 @@ int avsys_audio_open(avsys_audio_param_t *param, avsys_handle_t *phandle, int *s
 		return AVSYS_STATE_ERR_NULL_POINTER;
 	}
 
-	if (param->channels > 2 || param->channels < 1) {
+	if (param->channels > AVSYS_CHANNEL_MAX || param->channels < AVSYS_CHANNEL_MIN) {
 		return AVSYS_STATE_ERR_INVALID_CHANNEL;
 	}
 
@@ -102,6 +114,8 @@ int avsys_audio_open(avsys_audio_param_t *param, avsys_handle_t *phandle, int *s
 	if (param->format < AVSYS_AUDIO_FORMAT_MIN || param->format > AVSYS_AUDIO_FORMAT_MAX) {
 		return AVSYS_STATE_ERR_INVALID_FORMAT;
 	}
+
+	AVSYS_STREAM_LOCK();
 
 	err = avsys_audio_handle_rejuvenation();
 	if (AVSYS_FAIL(err)) {
@@ -147,18 +161,18 @@ int avsys_audio_open(avsys_audio_param_t *param, avsys_handle_t *phandle, int *s
 		}
 
 		/* update volume by type */
-		err = avsys_audio_handle_update_volume(p, p->gain_setting.vol_type);
+		err = avsys_audio_handle_update_volume(p, p->gain_setting.volume_config);
 		if (AVSYS_FAIL(err)) {
 			goto error;
 		}
-		err = avsys_audio_handle_update_priority(handle, param->priority, param->bluetooth, AVSYS_AUDIO_SET_PRIORITY);
+		err = avsys_audio_handle_update_priority(handle, param->priority, param->handle_route, AVSYS_AUDIO_SET_PRIORITY);
 		if (AVSYS_FAIL(err)) {
 			goto error;
 		}
 	}
 
 	/* open device */
-	err = avsys_audio_pasimple_open_device(p->mode, p->format, p->channels, p->samplerate, p, param->bluetooth);
+	err = avsys_audio_pasimple_open_device(p->mode, p->format, p->channels, p->samplerate, p, param->handle_route);
 	if (AVSYS_FAIL(err)) {
 		goto error;
 	}
@@ -187,7 +201,7 @@ int avsys_audio_open(avsys_audio_param_t *param, avsys_handle_t *phandle, int *s
 	if (AVSYS_FAIL(err)) {
 		goto error;
 	}
-
+	AVSYS_STREAM_UNLOCK();
 	return AVSYS_STATE_SUCCESS;
 
 error:
@@ -201,10 +215,10 @@ error:
 		}
 	}
 
-	avsys_error(AVAUDIO, "failed to open : RESION %x\n", err);
+	avsys_error(AVAUDIO, "failed to open : REASON %x\n", err);
 
 	*phandle = (avsys_handle_t)-1;
-
+	AVSYS_STREAM_UNLOCK();
 	return err;
 }
 
@@ -216,9 +230,14 @@ int avsys_audio_close(avsys_handle_t handle)
 	bool cp_audio = false;
 	bool bt_path = false;
 
+	AVSYS_STREAM_LOCK();
 	avsys_info(AVAUDIO, "%s, handle=[%d]\n", __func__, (int)handle);
 
-	AVSYS_GET_HANDLE_PTR(HANDLE_PTR_MODE_NORMAL);
+	err = avsys_audio_handle_get_ptr((int)handle, &p, HANDLE_PTR_MODE_NORMAL);
+	if (AVSYS_FAIL(err)) {
+		AVSYS_STREAM_UNLOCK();
+		return err;
+	}
 
 	if (AVSYS_FAIL(avsys_audio_handle_update_priority((int)handle, p->priority, AVSYS_AUDIO_HANDLE_ROUTE_FOLLOWING_POLICY, AVSYS_AUDIO_UNSET_PRIORITY))) {
 		avsys_error(AVAUDIO, "unset priority of handle %d error: %x\n", handle, err);
@@ -238,10 +257,51 @@ int avsys_audio_close(avsys_handle_t handle)
 		avsys_audio_path_set_single_ascn("cp_to_bt");
 	}
 
-	AVSYS_RELEASE_HANDLE_PTR(HANDLE_PTR_MODE_NORMAL);
+	if (AVSYS_FAIL(avsys_audio_handle_release_ptr((int)handle, HANDLE_PTR_MODE_NORMAL))) {
+		avsys_error(AVAUDIO, "audio handle release failed\n");
+		AVSYS_STREAM_UNLOCK();
+		return AVSYS_STATE_ERR_INTERNAL;
+	}
 
 	avsys_audio_handle_free((int)handle);
 
+	AVSYS_STREAM_UNLOCK();
+
+	return err;
+}
+
+EXPORT_API
+int avsys_audio_update_volume_config(avsys_handle_t handle, int volume_config)
+{
+	avsys_audio_handle_t *p = NULL;
+	int err = AVSYS_STATE_ERR_UNKNOWN;
+
+	AVSYS_STREAM_LOCK();
+	avsys_info(AVAUDIO, "%s, handle=[%d]\n", __func__, (int)handle);
+
+	err = avsys_audio_handle_get_ptr((int)handle, &p, HANDLE_PTR_MODE_NORMAL);
+	if (AVSYS_FAIL(err)) {
+		AVSYS_STREAM_UNLOCK();
+		return err;
+	}
+
+	if (p->mode == AVSYS_AUDIO_MODE_OUTPUT || p->mode == AVSYS_AUDIO_MODE_OUTPUT_CLOCK
+		|| p->mode == AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY || p->mode == AVSYS_AUDIO_MODE_OUTPUT_AP_CALL
+		|| p->mode == AVSYS_AUDIO_MODE_OUTPUT_VIDEO) {
+		p->gain_setting.volume_config = volume_config;
+		/* update volume by type */
+		err = avsys_audio_handle_update_volume(p, p->gain_setting.volume_config);
+		if (AVSYS_FAIL(err)) {
+			AVSYS_STREAM_UNLOCK();
+			return err;
+		}
+		err = avsys_audio_pasimple_set_volume(p, p->working_vol.level[AVSYS_AUDIO_CHANNEL_LEFT]);
+		if (AVSYS_FAIL(err)) {
+			avsys_error(AVAUDIO, "can not set volume in %s\n", __func__);
+		}
+	}
+
+	AVSYS_STREAM_UNLOCK();
 	return err;
 }
 
@@ -486,9 +546,9 @@ int avsys_audio_set_mute_fadedown(avsys_handle_t handle)
 
 /* Tuning part */
 EXPORT_API
-int avsys_audio_set_volume_table(int gain_type, int dev_type, int step, int lv, int rv)
+int avsys_audio_set_volume_table(int volume_type, int dev_type, int step, int lv, int rv)
 {
-	int ret = avsys_audio_logical_volume_set_to_table(gain_type, dev_type, step, lv, rv);
+	int ret = avsys_audio_logical_volume_set_to_table(volume_type, dev_type, step, lv, rv);
 	avsys_audio_handle_t *ptr = NULL;
 	int handle = -1;
 
@@ -508,22 +568,47 @@ int avsys_audio_set_volume_table(int gain_type, int dev_type, int step, int lv, 
 }
 
 EXPORT_API
-int avsys_audio_get_volume_table(int gain_type, int dev_type, int step, int *lv, int *rv)
+int avsys_audio_get_volume_table(int volume_type, int dev_type, int step, int *lv, int *rv)
 {
-	return avsys_audio_logical_volume_get_from_table(gain_type, dev_type, step, lv, rv);
+	return avsys_audio_logical_volume_get_from_table(volume_type, dev_type, step, lv, rv);
 }
 
 EXPORT_API
 int avsys_audio_get_volume_max_ex(int volume_type, int *max_step)
 {
-	int volume_table = 0;
 	if (max_step == NULL) {
 		return AVSYS_STATE_ERR_NULL_POINTER;
 	}
 
-	volume_table = volume_type;
+	return avsys_audio_logical_volume_get_max(volume_type, AVSYS_AUDIO_LVOL_DEV_TYPE_SPK, max_step);
+}
 
-	return avsys_audio_logical_volume_get_max(volume_table, AVSYS_AUDIO_LVOL_DEV_TYPE_SPK, max_step);
+EXPORT_API
+int avsys_audio_set_volume_gain_table(int volume_gain_idx, int dev_type, float lv, float rv)
+{
+	int ret = avsys_audio_logical_volume_set_gain_to_table(volume_gain_idx, dev_type, lv, rv);
+	avsys_audio_handle_t *ptr = NULL;
+	int handle = -1;
+
+	if (AVSYS_FAIL(ret)) {
+		return ret;
+	}
+
+	while(++handle < AVSYS_AUDIO_HANDLE_MAX) {
+		ptr = NULL;
+
+		if (AVSYS_SUCCESS(avsys_audio_handle_get_ptr(handle, &ptr, HANDLE_PTR_MODE_NORMAL))) {
+			avsys_audio_logical_volume_convert(&ptr->setting_vol, &ptr->working_vol, &ptr->gain_setting);
+			avsys_audio_handle_release_ptr(handle, HANDLE_PTR_MODE_NORMAL);
+		}
+	}
+	return AVSYS_STATE_SUCCESS;
+}
+
+EXPORT_API
+int avsys_audio_get_volume_gain_table(int volume_gain_idx, int dev_type, float *lv, float *rv)
+{
+	return avsys_audio_logical_volume_get_gain_from_table(volume_gain_idx, dev_type, lv, rv);
 }
 
 EXPORT_API
@@ -631,6 +716,9 @@ int avsys_audio_get_global_mute(int *pmute)
 
 static int __avsys_audio_set_info(avsys_audio_handle_t *p, avsys_audio_param_t *param)
 {
+	int vol_conf_type = AVSYS_AUDIO_VOLUME_CONFIG_TYPE(param->vol_type);
+	int vol_conf_gain = AVSYS_AUDIO_VOLUME_CONFIG_GAIN(param->vol_type);
+
 	avsys_info(AVAUDIO, "%s\n", __func__);
 
 	avsys_info(AVAUDIO, "=============================================\n");
@@ -640,8 +728,9 @@ static int __avsys_audio_set_info(avsys_audio_handle_t *p, avsys_audio_param_t *
 	avsys_info(AVAUDIO, " format     = %d (0: 8bits, 1:16bits, 2:32bits)\n", param->format);
 	avsys_info(AVAUDIO, " channel    = %d\n", param->channels);
 	avsys_info(AVAUDIO, " samplerate = %d\n", param->samplerate);
-	avsys_info(AVAUDIO, " route      = %d (0: default, 1: handset)\n", param->bluetooth);
-	avsys_info(AVAUDIO, " Vol type   = %d\n", param->vol_type);
+	avsys_info(AVAUDIO, " route      = %d (0: default, 1: handset)\n", param->handle_route);
+	avsys_info(AVAUDIO, " volume type= %d\n", vol_conf_type);
+	avsys_info(AVAUDIO, " volume gain= %d\n", vol_conf_gain);
 	avsys_info(AVAUDIO, "=============================================\n");
 
 	p->mode = param->mode;
@@ -650,11 +739,11 @@ static int __avsys_audio_set_info(avsys_audio_handle_t *p, avsys_audio_param_t *
 	p->format = param->format;
 	p->priority = param->priority;
 
-	if ((param->vol_type < 0) || (param->vol_type >= AVSYS_AUDIO_VOLUME_TYPE_MAX)) {
-		avsys_error(AVAUDIO, "[%s] Invalid volume type %d. use default system type\n", __func__, param->vol_type);
-		p->gain_setting.vol_type = AVSYS_AUDIO_VOLUME_TYPE_SYSTEM;
+	if ((vol_conf_type < 0) || (vol_conf_type >= AVSYS_AUDIO_VOLUME_TYPE_MAX)) {
+		avsys_error(AVAUDIO, "[%s] Invalid volume type %d. use default system type\n", __func__, vol_conf_type);
+		p->gain_setting.volume_config = AVSYS_AUDIO_VOLUME_TYPE_SYSTEM;
 	} else {
-		p->gain_setting.vol_type = param->vol_type;
+		p->gain_setting.volume_config = param->vol_type;
 	}
 
 	/* trivial volume value */
@@ -692,6 +781,12 @@ int avsys_audio_earjack_manager_deinit(int waitfd)
 }
 
 EXPORT_API
+int avsys_audio_earjack_manager_get_type(void)
+{
+	return avsys_audio_path_earjack_get_type();
+}
+
+EXPORT_API
 int avsys_audio_earjack_manager_unlock(void)
 {
 	return avsys_audio_path_earjack_unlock();
@@ -700,15 +795,15 @@ int avsys_audio_earjack_manager_unlock(void)
 EXPORT_API
 int avsys_audio_set_route_policy(avsys_audio_route_policy_t route)
 {
-	return avsys_audio_path_set_route_policy(route);
+	/* Deprecated */
+	return 0;
 }
 
 EXPORT_API
 int avsys_audio_get_route_policy(avsys_audio_route_policy_t *route)
 {
-	if (route == NULL)
-		return AVSYS_STATE_ERR_NULL_POINTER;
-	return avsys_audio_path_get_route_policy(route);
+	/* Deprecated */
+	return 0;
 }
 
 EXPORT_API
@@ -724,17 +819,17 @@ static inline int __avsys_audio_validate_volume(const int type, const int value)
 	if (value < 0)
 		return -1;
 	switch (type) {
-	case AVSYS_AUDIO_VOLUME_TYPE_ALARM:
 	case AVSYS_AUDIO_VOLUME_TYPE_CALL:
+	case AVSYS_AUDIO_VOLUME_TYPE_VOIP:
 		if (value >= LVOLUME_MAX_BASIC) {
 			return -1;
 		}
 		break;
+	case AVSYS_AUDIO_VOLUME_TYPE_ALARM:
 	case AVSYS_AUDIO_VOLUME_TYPE_RINGTONE:
 	case AVSYS_AUDIO_VOLUME_TYPE_NOTIFICATION:
 	case AVSYS_AUDIO_VOLUME_TYPE_SYSTEM:
 	case AVSYS_AUDIO_VOLUME_TYPE_MEDIA:
-	case AVSYS_AUDIO_VOLUME_TYPE_MEDIA_HL:
 	case AVSYS_AUDIO_VOLUME_TYPE_EXT_SYSTEM_JAVA:
 		if (value >= LVOLUME_MAX_MULTIMEDIA) {
 			return -1;
@@ -778,6 +873,7 @@ EXPORT_API
 int avsys_audio_hibernation_reset(int *vol)
 {
 	int err = AVSYS_STATE_SUCCESS;
+
 	err = avsys_audio_path_ex_reset(1);
 	if (AVSYS_FAIL(err)) {
 		avsys_error(AVAUDIO, "avsys_audio_path_ex_reset(forced) failed 0x%x\n", err);
@@ -789,6 +885,7 @@ int avsys_audio_hibernation_reset(int *vol)
 		avsys_error(AVAUDIO, "avsys_audio_handle_reset() failed 0x%x\n", err);
 		return err;
 	}
+
 	return err;
 }
 
@@ -856,37 +953,41 @@ int avsys_audio_get_period_buffer_time(avsys_handle_t handle, unsigned int *peri
 }
 
 EXPORT_API
-int avsys_audio_get_playing_device_info(avsys_audio_playing_devcie_t *dev)
+int avsys_audio_cork (avsys_handle_t handle, int cork)
 {
 	int err = AVSYS_STATE_SUCCESS;
-	int sink_info = 0;
-	bool alsa_loud = false;
+	avsys_audio_handle_t *p = NULL;
 
-	if (!dev)
-		return AVSYS_STATE_ERR_INVALID_PARAMETER;
+	AVSYS_GET_HANDLE_PTR(HANDLE_PTR_MODE_NORMAL);
 
-	err = avsys_audio_pa_ctrl_get_default_sink(&sink_info);
-	if (AVSYS_FAIL(err))
-		return err;
-
-	switch (sink_info) {
-	case AVSYS_AUDIO_PA_CTL_SINK_UNKNOWN:
-		avsys_error_r(AVAUDIO, "Unexpected sink information\n");
-		err = AVSYS_STATE_ERR_UNAVAILABLE_DEVICE;
-		break;
-	case AVSYS_AUDIO_PA_CTL_SINK_ALSA:
-		err = avsys_audio_path_check_loud(&alsa_loud);
-		if (AVSYS_FAIL(err))
-			break;
-		if (alsa_loud == true)
-			*dev = AVSYS_AUDIO_ROUTE_DEVICE_HANDSET;
-		else
-			*dev = AVSYS_AUDIO_ROUTE_DEVICE_EARPHONE;
-		break;
-	case AVSYS_AUDIO_PA_CTL_SINK_BLUEZ:
-		*dev = AVSYS_AUDIO_ROUTE_DEVICE_BLUETOOTH;
-		break;
+	err = avsys_audio_pasimple_cork(p, cork);
+	if(AVSYS_FAIL(err)) {
+		avsys_error(AVAUDIO, "avsys_audio_pasimple_cork() failed, 0x%X\n",err);
 	}
+
+	AVSYS_RELEASE_HANDLE_PTR(HANDLE_PTR_MODE_NORMAL);
+
+	return err;
+}
+
+EXPORT_API
+int avsys_audio_is_corked (avsys_handle_t handle, int *is_corked)
+{
+	int err = AVSYS_STATE_SUCCESS;
+	avsys_audio_handle_t *p = NULL;
+
+	if (is_corked == NULL) {
+		return AVSYS_STATE_ERR_NULL_POINTER;
+	}
+
+	AVSYS_GET_HANDLE_PTR(HANDLE_PTR_MODE_NORMAL);
+
+	err = avsys_audio_pasimple_is_corked(p, is_corked);
+	if(AVSYS_FAIL(err)) {
+		avsys_error(AVAUDIO, "avsys_audio_pasimple_cork() failed, 0x%X\n",err);
+	}
+
+	AVSYS_RELEASE_HANDLE_PTR(HANDLE_PTR_MODE_NORMAL);
 
 	return err;
 }

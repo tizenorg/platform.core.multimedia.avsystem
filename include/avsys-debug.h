@@ -32,28 +32,24 @@
 #ifdef __USE_LOGMANAGER__
 #include <stdio.h>
 #include <mm_log.h>
-#define AVAUDIO  LOG_AVAUDIO
-#define AVVIDEO  LOG_AVVIDEO
-#define AVCAMERA LOG_AVCAMERA
+#define AVAUDIO  LOG_AVSYSTEM
 #else
 #define AVAUDIO
-#define AVVIDEO
-#define AVCAMERA
 #endif
 
 #ifdef __DEBUG_MODE__
 #ifdef __USE_LOGMANAGER__
 
-#define avsys_info_r(owner, msg, args...)		log_print_rel( owner, LOG_CLASS_INFO,     "[%05d:%s] "msg, __LINE__, __func__, ##args )
-#define avsys_warning_r(owner, msg, args...)	log_print_rel( owner, LOG_CLASS_WARNING,  "[%05d:%s] "msg, __LINE__, __func__, ##args )
-#define avsys_error_r(owner, msg, args...)		log_print_rel( owner, LOG_CLASS_ERR,      "[%05d:%s] "msg, __LINE__, __func__, ##args )
-#define avsys_critical_r(owner, msg, args...)	log_print_rel( owner, LOG_CLASS_CRITICAL, "[%05d:%s] "msg, __LINE__, __func__, ##args )
+#define avsys_info_r(owner, msg, args...)		log_print_rel( owner, LOG_CLASS_INFO, msg, ##args )
+#define avsys_warning_r(owner, msg, args...)	log_print_rel( owner, LOG_CLASS_WARNING, msg, ##args )
+#define avsys_error_r(owner, msg, args...)		log_print_rel( owner, LOG_CLASS_ERR, msg, ##args )
+#define avsys_critical_r(owner, msg, args...)	log_print_rel( owner, LOG_CLASS_CRITICAL, msg, ##args )
 #define avsys_assert_r(condition)				log_assert_rel(( condition ))
 
-#define avsys_info(owner, msg, args...)			log_print_dbg( owner, LOG_CLASS_INFO,     "[%05d:%s] "msg, __LINE__, __func__, ##args )
-#define avsys_warning(owner, msg, args...)		log_print_dbg( owner, LOG_CLASS_WARNING,  "[%05d:%s] "msg, __LINE__, __func__, ##args )
-#define avsys_error(owner, msg, args...)		log_print_dbg( owner, LOG_CLASS_ERR,      "[%05d:%s] "msg, __LINE__, __func__, ##args )
-#define avsys_critical(owner, msg, args...)		log_print_dbg( owner, LOG_CLASS_CRITICAL, "[%05d:%s] "msg, __LINE__, __func__, ##args )
+#define avsys_info(owner, msg, args...)			log_print_dbg( owner, LOG_CLASS_INFO, msg, ##args )
+#define avsys_warning(owner, msg, args...)		log_print_dbg( owner, LOG_CLASS_WARNING, msg, ##args )
+#define avsys_error(owner, msg, args...)		log_print_dbg( owner, LOG_CLASS_ERR, msg, ##args )
+#define avsys_critical(owner, msg, args...)		log_print_dbg( owner, LOG_CLASS_CRITICAL, msg, ##args )
 #define avsys_assert(condition)					log_assert_dbg( (condition) )
 
 #else	/* __USE_LOGMANAGER__ */

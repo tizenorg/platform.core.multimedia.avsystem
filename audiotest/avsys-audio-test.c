@@ -76,7 +76,7 @@ int __make_param(int op, int mode, int routing, avsys_audio_param_t *param)
 
 	param->priority = AVSYS_AUDIO_PRIORITY_NORMAL;
 	param->vol_type = AVSYS_AUDIO_VOLUME_TYPE_SYSTEM;
-	param->bluetooth = routing;
+	param->handle_route = routing;
 
 	switch (mode) {
 	case 0:
@@ -118,7 +118,7 @@ int _playback(int mode, int routing, char *filename)
 	if (!filename)
 		return -1;
 
-	memset(&param, sizeof(avsys_audio_param_t), '\0');
+	memset(&param, '\0', sizeof(avsys_audio_param_t));
 
 	if (__make_param(OP_PLAYBACK, mode, routing, &param)) {
 		printf("Can not make audio parameter\n");
@@ -177,7 +177,7 @@ int _capture(int mode, int routing, char *filename)
 
 	printf("[%s] real filename :%s\n", __func__, namebuffer);
 
-	memset(&param, sizeof(avsys_audio_param_t), '\0');
+	memset(&param, '\0', sizeof(avsys_audio_param_t));
 
 	if (__make_param(OP_CAPTURE, mode, routing, &param)) {
 		printf("Can not make audio parameter\n");
@@ -196,7 +196,7 @@ int _capture(int mode, int routing, char *filename)
 		goto FAIL;
 	}
 
-	fd = open(namebuffer, O_WRONLY | O_CREAT);
+	fd = open(namebuffer, O_WRONLY | O_CREAT, 0644);
 	if (fd == -1) {
 		printf("Can not open file %s, %s\n", namebuffer, strerror(errno));
 		goto FAIL;

@@ -36,7 +36,7 @@ typedef struct {
 static _avsys_audio_shm_control_t g_presettings[AVSYS_AUDIO_SHM_IDEN_CNT] = {
 	{{SHM_KEY_PATH, AVSYS_KEY_PREFIX_GEN(AVSYS_KEY_PREFIX_AUDIO,AVSYS_AUDIO_SHM_IDEN_HANDLE) + 0x10,sizeof(avsys_audio_handle_info_t)}, NULL},
 	{{SHM_KEY_PATH, AVSYS_KEY_PREFIX_GEN(AVSYS_KEY_PREFIX_AUDIO,AVSYS_AUDIO_SHM_IDEN_PATH) + 0x10,sizeof(avsys_audio_path_ex_info_t)}, NULL},
-	{{SHM_KEY_PATH, AVSYS_KEY_PREFIX_GEN(AVSYS_KEY_PREFIX_AUDIO,AVSYS_AUDIO_SHM_IDEN_LVOLUME) + 0x10,sizeof(avsys_logical_gain_t) * AVSYS_AUDIO_LVOL_GAIN_TYPE_MAX}, NULL},
+	{{SHM_KEY_PATH, AVSYS_KEY_PREFIX_GEN(AVSYS_KEY_PREFIX_AUDIO,AVSYS_AUDIO_SHM_IDEN_LVOLUME) + 0x10,sizeof(avsys_audio_lvol_info_t)}, NULL},
 };
 
 int avsys_audio_create_shm(const avsys_audio_shm_iden_t iden)
