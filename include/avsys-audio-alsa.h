@@ -27,22 +27,30 @@
 #endif
 #include <avsys-audio-handle.h>
 
-enum AIF_device_type_t {
-	AIF2_CAPTURE,
-	AIF2_PLAYBACK,
-	AIF3_CAPTURE,
-	AIF3_PLAYBACK,
+typedef enum {
+	AIF_CP_CAPTURE,
+	AIF_CP_PLAYBACK,
+	AIF_BT_CAPTURE,
+	AIF_BT_PLAYBACK,
+	AIF_RADIO_PLAYBACK,
 	AIF_DEVICE_MAX,
-};
+} aif_device_type_t;
+
+typedef enum  {
+	AIF_CONF_RATE = 0,
+	AIF_NB_RATE = 8000,
+	AIF_WB_RATE = 16000,
+} aif_rate_t;
 
 typedef struct {
 	void *alsa_handle;
 	int type;
-} avsys_audio_alsa_aif_handle_t;;
+	int rate;
+} avsys_audio_alsa_aif_handle_t;
 
-int avsys_audio_alsa_open_AIF_device(const int AIF_type, avsys_audio_alsa_aif_handle_t *handle);
+int avsys_audio_alsa_open_AIF_device(aif_device_type_t aif_type, avsys_audio_alsa_aif_handle_t *handle);
 int avsys_audio_alsa_close_AIF_device(avsys_audio_alsa_aif_handle_t* handle);
-int avsys_audio_alsa_set_AIF_params(avsys_audio_alsa_aif_handle_t *handle);
+int avsys_audio_alsa_set_AIF_params(avsys_audio_alsa_aif_handle_t *handle, aif_rate_t rate);
 
 #ifdef __cplusplus
 	}

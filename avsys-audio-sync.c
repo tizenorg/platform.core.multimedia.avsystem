@@ -35,8 +35,6 @@
 static avsys_sync_param_t g_presettings[AVSYS_AUDIO_SYNC_IDEN_CNT] = {
 	{"audio_handle_lock", AVSYS_KEY_PREFIX_GEN(AVSYS_KEY_PREFIX_AUDIO, AVSYS_AUDIO_SYNC_IDEN_HANDLE)},
 	{"audio_path_lock", AVSYS_KEY_PREFIX_GEN(AVSYS_KEY_PREFIX_AUDIO, AVSYS_AUDIO_SYNC_IDEN_PATH)},
-	{"audio_route_policy_lock", AVSYS_KEY_PREFIX_GEN(AVSYS_KEY_PREFIX_AUDIO, AVSYS_AUDIO_SYNC_IDEN_SOUNDPATH)},
-	{"av_volume_sem", AVSYS_KEY_PREFIX_GEN(AVSYS_KEY_PREFIX_AUDIO, AVSYS_AUDIO_SYNC_IDEN_VOLUME)},
 };
 
 int avsys_audio_create_sync(const avsys_audio_sync_iden_t iden)
