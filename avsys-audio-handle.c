@@ -80,15 +80,9 @@ static int g_default_volume[AVSYS_AUDIO_VOLUME_TYPE_MAX] = {
 EXPORT_API
 int avsys_audio_handle_init(void)
 {
-	int i, err = 0;
+	int i = 0;
 	avsys_audio_handle_info_t *control = NULL;
 	avsys_audio_handle_info_t **temp = NULL;
-
-	/* Check root user */
-	err = avsys_check_root_privilege();
-	if (AVSYS_FAIL(err)) {
-		return err;
-	}
 
 	if (AVSYS_FAIL(avsys_audio_create_sync(AVSYS_AUDIO_SYNC_IDEN_HANDLE))) {
 		avsys_error(AVAUDIO, "avsys_audio_create_sync() failed in %s\n", __func__);
@@ -147,18 +141,12 @@ int avsys_audio_handle_fini(void)
 EXPORT_API
 int avsys_audio_handle_reset(int *volume_value)
 {
-	int i = 0, err = 0;
+	int i = 0;
 	long long int flag = 0x01;
 	avsys_audio_handle_info_t *control = NULL;
 	avsys_audio_handle_info_t **temp = NULL;
 	int * volumes;
 	temp = &control;
-
-	/* Check root user */
-	err = avsys_check_root_privilege();
-	if (AVSYS_FAIL(err)) {
-		return err;
-	}
 
 	AVSYS_GET_SHM(temp,AVSYS_STATE_ERR_INTERNAL);
 	if (control == NULL) {

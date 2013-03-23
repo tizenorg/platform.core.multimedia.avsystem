@@ -325,12 +325,6 @@ int avsys_audio_path_ex_init(void)
 	int err = AVSYS_STATE_SUCCESS;
 	avsys_audio_conf conf = { 0, };
 
-	/* Check root user */
-	err = avsys_check_root_privilege();
-	if (AVSYS_FAIL(err)) {
-		return err;
-	}
-
 	temp = &control;
 	avsys_assert(AVSYS_SUCCESS(avsys_audio_create_sync(AVSYS_AUDIO_SYNC_IDEN_PATH)));
 	avsys_assert(AVSYS_SUCCESS(avsys_audio_create_shm(AVSYS_AUDIO_SHM_IDEN_PATH)));
@@ -424,12 +418,6 @@ int avsys_audio_path_ex_reset(int forced)
 	int err = AVSYS_STATE_SUCCESS;
 	int backup_debug = 0;
 	avsys_audio_conf conf = { 0, };
-
-	/* Check root user */
-	err = avsys_check_root_privilege();
-	if (AVSYS_FAIL(err)) {
-		return err;
-	}
 
 	temp = &control;
 	if (AVSYS_FAIL(avsys_audio_get_shm(AVSYS_AUDIO_SHM_IDEN_PATH, (void **)temp))) {
