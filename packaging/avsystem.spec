@@ -58,9 +58,9 @@ ln -s ../init.d/snd_init %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S15snd_init
 mkdir -m 755 -p %{buildroot}/%{_sysconfdir}/rc.d/rc4.d/
 ln -s ../init.d/snd_init %{buildroot}/%{_sysconfdir}/rc.d/rc4.d/S15snd_init
 
-mkdir -m 755 -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
-install -m 0644 %SOURCE101 %{buildroot}%{_libdir}/systemd/system/avsystem.service
-ln -s ../avsystem.service %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/avsystem.service
+mkdir -m 755 -p %{buildroot}/usr/lib/systemd/system/multi-user.target.wants
+install -m 0644 %SOURCE101 %{buildroot}/usr/lib/systemd/system/avsystem.service
+ln -s ../avsystem.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/avsystem.service
 
 %preun
 if [ $1 == 0 ]; then
@@ -86,11 +86,11 @@ systemctl daemon-reload
 %{_sysconfdir}/rc.d/rc4.d/S15snd_init
 %{_bindir}/*
 %{_libdir}/lib*.so.*
-%{_libdir}/systemd/system/avsystem.service
-%{_libdir}/systemd/system/multi-user.target.wants/avsystem.service
+/usr/lib/systemd/system/avsystem.service
+/usr/lib/systemd/system/multi-user.target.wants/avsystem.service
 
 %files devel
 %manifest avsystem.manifest
 %{_libdir}/pkgconfig/*.pc
 %{_libdir}/*.so
-/usr/include/avsystem/*.h
+%{_includedir}/avsystem/*.h
