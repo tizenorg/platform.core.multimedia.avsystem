@@ -227,8 +227,6 @@ int avsys_audio_close(avsys_handle_t handle)
 {
 	avsys_audio_handle_t *p = NULL;
 	int err = AVSYS_STATE_ERR_UNKNOWN;
-	bool cp_audio = false;
-	bool bt_path = false;
 
 	AVSYS_STREAM_LOCK();
 	avsys_info(AVAUDIO, "%s, handle=[%d]\n", __func__, (int)handle);
@@ -248,15 +246,6 @@ int avsys_audio_close(avsys_handle_t handle)
 		avsys_error_r(AVAUDIO, "audio device close error : %x\n", err);
 	}
 
-	if (AVSYS_FAIL(avsys_audio_path_check_cp_audio(&cp_audio, &bt_path))) {
-		avsys_error(AVAUDIO, "Can not check cp audio status\n");
-	}
-
-	if (p->during_cp_audio && cp_audio && bt_path) {
-		/* set cp bt path again */
-		avsys_audio_path_set_single_ascn("cp_to_bt");
-	}
-
 	if (AVSYS_FAIL(avsys_audio_handle_release_ptr((int)handle, HANDLE_PTR_MODE_NORMAL))) {
 		avsys_error(AVAUDIO, "audio handle release failed\n");
 		AVSYS_STREAM_UNLOCK();
@@ -274,14 +263,14 @@ EXPORT_API
 int avsys_audio_ampon(void)
 {
 	avsys_info(AVAUDIO, "%s\n", __func__);
-	return avsys_audio_path_ex_set_amp(AVSYS_AUDIO_AMP_ON);
+	return avsys_audio_path_ex_set_amp(1);
 }
 
 EXPORT_API
 int avsys_audio_ampoff(void)
 {
 	avsys_info(AVAUDIO, "%s\n", __func__);
-	return avsys_audio_path_ex_set_amp(AVSYS_AUDIO_AMP_OFF);
+	return avsys_audio_path_ex_set_amp(0);
 }
 
 
