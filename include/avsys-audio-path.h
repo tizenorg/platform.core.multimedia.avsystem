@@ -64,21 +64,6 @@ enum avsys_audio_ear_ctrl {
 #define CODE_LINEOUT_INSERT			0x06
 #define CODE_JACK_PHYSICAL_INSERT	0x07
 
-#define PATH_FIXED_NONE                     (0x00000000)
-#define PATH_FIXED_WITH_CALL            (1 << PATH_FIXED_TYPE_CALL)         /* 0x00000002 */
-
-enum avsys_audio_amp_t {
-    AVSYS_AUDIO_AMP_OFF = 0,	/**< AMP OFF in pda out */
-    AVSYS_AUDIO_AMP_ON,			/**< AMP ON in pda out */
-    AVSYS_AUDIO_AMP_OFF_ALL,
-};
-
-enum path_fixed_type_t {
-    PATH_FIXED_TYPE_FMRADIO = 0,
-    PATH_FIXED_TYPE_CALL,
-    PATH_FIXED_TYPE_MAX,
-};
-
 struct audio_route_info_t {
     int playback;
     int capture;
@@ -94,17 +79,10 @@ typedef struct {
 	gain_info_t gain;
 	path_info_t path;
 
-	gain_info_t backup_gain;
-	path_info_t backup_path;
-
 	gain_info_t pregain;
 	gain_info_t reqgain;
 
 	option_info_t option;
-
-	/* path fixed information */
-	int	path_fixed;
-	pid_t path_fixed_pid[PATH_FIXED_TYPE_MAX];
 
 	/* hw mute */
 	int mute;
