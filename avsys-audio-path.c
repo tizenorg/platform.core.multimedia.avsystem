@@ -48,48 +48,6 @@
 									return AVSYS_STATE_ERR_IO_CONTROL; \
 									} }
 
-static int g_playback_path_select_data[AVSYS_AUDIO_PLAYBACK_GAIN_MAX][AVSYS_AUDIO_PATH_EX_OUTMAX] = {
-		{ /* AVSYS_AUDIO_PLAYBACK_GAIN_AP */
-			/* NONE SPK RECV HEADSET BTHEADSET A2DP HANDSFREE HDMI DOCK USBAUDIO */
-				0,	1,	0,	1,	0,	0,	0,	0,  1,  0
-		},
-		{ /* AVSYS_AUDIO_PLAYBACK_GAIN_FMRADIO */
-			/* NONE SPK RECV HEADSET BTHEADSET A2DP HANDSFREE HDMI */
-				1,	1,	0,	1,	0,	1,	0,	0,  0,  0
-		},
-		{ /* AVSYS_AUDIO_PLAYBACK_GAIN_VOICECALL */
-			/* NONE SPK RECV HEADSET BTHEADSET A2DP HANDSFREE HDMI */
-				1,	1,	1,	1,	1,	0,	0,	0,  0,  0
-		},
-		{ /* AVSYS_AUDIO_PLAYBACK_GAIN_VIDEOCALL */
-			/* NONE SPK RECV HEADSET BTHEADSET A2DP HANDSFREE HDMI */
-				1,	1,	1,	1,	1,	0,	0,	0,  0,  0
-		},
-		{ /* AVSYS_AUDIO_PLAYBACK_GAIN_CALLALERT */
-			/* NONE SPK RECV HEADSET BTHEADSET A2DP HANDSFREE HDMI */
-				0,	1,	1,	1,	1,	0,	0,	0,  0,  0
-		}
-};
-
-static int g_capture_path_select_data[AVSYS_AUDIO_CAPTURE_GAIN_MAX][AVSYS_AUDIO_PATH_EX_INMAX] = {
-		{ /* AVSYS_AUDIO_CAPTURE_GAIN_AP */
-			/* NONE MIC HMIC BMIC FMIN HFREE */
-				1,	1,	1,	1,	0,	0
-		},
-		{ /* AVSYS_AUDIO_CAPTURE_GAIN_FMRADIO */
-			/* NONE MIC HMIC BMIC FMIN HFREE */
-				1,	0,	0,	0,	1,	0
-		},
-		{ /* AVSYS_AUDIO_CAPTURE_GAIN_VOICECALL */
-			/* NONE MIC HMIC BMIC FMIN HFREE */
-				1,	1,	1,	1,	0,	0
-		},
-		{ /* AVSYS_AUDIO_CAPTURE_GAIN_VIDEOCALL */
-			/* NONE MIC HMIC BMIC FMIN HFREE */
-				1,	1,	1,	1,	0,	0
-		},
-};
-
 static int g_playback_gain_select_data[AVSYS_AUDIO_PLAYBACK_GAIN_MAX][AVSYS_AUDIO_PLAYBACK_GAIN_MAX] = {
 		{	/* AVSYS_AUDIO_PLAYBACK_GAIN_AP */
 				AVSYS_AUDIO_PLAYBACK_GAIN_AP,				/* AVSYS_AUDIO_PLAYBACK_GAIN_AP */
@@ -171,7 +129,11 @@ static int __avsys_audio_path_get_earjack_type(void);
 #define EARJACK_EVENT_PATH	"/dev/input/event"
 
 #define AVSYS_AUDIO_INI_DEFAULT_PATH "/usr/etc/mmfw_avsystem.ini"
+//#define HAL
+#ifdef HAL
 #define AVSYS_AUDIO_DEFAULT_CONTROL_AIF_BEFORE_PATH_SET		0
+#endif
+
 #define AVSYS_AUDIO_DEFAULT_GAIN_DEBUG_MODE					0
 
 static char *conf_string[] = {
@@ -274,13 +236,17 @@ static int __load_conf(avsys_audio_conf *data)
 	/* first, try to load existing ini file */
 	dict = iniparser_load(AVSYS_AUDIO_INI_DEFAULT_PATH);
 	if (dict) { /* if dict is available */
+#ifdef HAL
 		data->control_aif_before_path_set = iniparser_getboolean(dict, "aif:control aif before path set", AVSYS_AUDIO_DEFAULT_CONTROL_AIF_BEFORE_PATH_SET);
+#endif
 		data->gain_debug_mode = iniparser_getboolean(dict, "debug:gain debug mode", AVSYS_AUDIO_DEFAULT_GAIN_DEBUG_MODE);
 
 		/* free dict as we got our own structure */
 		iniparser_freedict (dict);
 	} else { /* if no file exists. create one with set of default values */
+#ifdef HAL
 		data->control_aif_before_path_set = AVSYS_AUDIO_DEFAULT_CONTROL_AIF_BEFORE_PATH_SET;
+#endif
 		data->gain_debug_mode = AVSYS_AUDIO_DEFAULT_GAIN_DEBUG_MODE;
 	}
 
@@ -318,8 +284,6 @@ int avsys_audio_path_ex_init(void)
 	control->gain = default_gain;
 	control->reqgain = default_gain;
 	control->path = default_path;
-	control->backup_gain = default_gain;
-	control->backup_path = default_path;
 	control->option = default_option;
 
 	control->lvol_dev_type = AVSYS_AUDIO_LVOL_DEV_TYPE_SPK;
@@ -346,19 +310,12 @@ int avsys_audio_path_ex_init(void)
 	control->gain_debug_mode = conf.gain_debug_mode;
 
 	control->mute = AVSYS_AUDIO_UNMUTE;
-	control->path_fixed = PATH_FIXED_NONE;
 
 	index = 0;
 	do {
 		control->pathlock_pid[index] = -1;
 		index++;
 	} while (index < AVSYS_AUDIO_LOCK_SLOT_MAX);
-
-	index = 0;
-	do {
-		control->path_fixed_pid[index] = -1;
-		index++;
-	} while (index < PATH_FIXED_TYPE_MAX);
 
 	/* call path control */
 	err = __avsys_audio_path_set_ascn_ap_playback(control);
@@ -422,8 +379,6 @@ int avsys_audio_path_ex_reset(int forced)
 	control->gain = default_gain;
 	control->reqgain = default_gain;
 	control->path = default_path;
-	control->backup_gain = default_gain;
-	control->backup_path = default_path;
 	control->option = default_option;
 
 	control->lvol_dev_type = AVSYS_AUDIO_LVOL_DEV_TYPE_SPK;
@@ -455,19 +410,12 @@ int avsys_audio_path_ex_reset(int forced)
 	control->gain_debug_mode = conf.gain_debug_mode;
 
 	control->mute = AVSYS_AUDIO_UNMUTE;
-	control->path_fixed = PATH_FIXED_NONE;
 
 	index = 0;
 	do {
 		control->pathlock_pid[index] = -1;
 		index++;
 	} while (index < AVSYS_AUDIO_LOCK_SLOT_MAX);
-
-	index = 0;
-	do {
-		control->path_fixed_pid[index] = -1;
-		index++;
-	} while (index < PATH_FIXED_TYPE_MAX);
 
 	if (forced) {
 		backup_debug = control->gain_debug_mode;
@@ -548,12 +496,7 @@ int avsys_audio_path_ex_dump(void)
 	fprintf(stdout, " Gain debug mode               : 0x%-x\n", control->gain_debug_mode);
 	fprintf(stdout, " Auto EarJack Control          : %-s\n", str_ear[control->ear_auto]);
 	fprintf(stdout, " Physical Earjack? [type]      : %-s [%-s]\n", str_yn[control->inserted != AVSYS_AUDIO_INSERTED_NONE], str_earType[control->inserted]);
-	fprintf(stdout, " Path Fixed State              : 0x%-x\n", control->path_fixed);
 	fprintf(stdout, " Mute status                   : %d\n", control->mute);
-	if (control->path_fixed_pid[PATH_FIXED_TYPE_FMRADIO] != -1)
-		fprintf(stdout, " FM Radio path pid             : %d\n", control->path_fixed_pid[PATH_FIXED_TYPE_FMRADIO]);
-	if (control->path_fixed_pid[PATH_FIXED_TYPE_CALL] != -1)
-		fprintf(stdout, " Call  path pid                : %d\n", control->path_fixed_pid[PATH_FIXED_TYPE_CALL]);
 
 	index = 0;
 	do {
@@ -806,6 +749,7 @@ int avsys_audio_path_earjack_unlock()
 #define DO_IF_INVALID(c, p) { if(c == -1) p; }
 #define CHECK_VALID(c) (c>-1 ? 1 : 0)
 
+#ifdef HAL
 enum {
 	CMD_DEVICE_NONE = 0,
 	CMD_DEVICE_OPEN,
@@ -885,43 +829,32 @@ static void __avsys_close_aif ()
 		}
 	}
 }
+#endif
 
 static int __avsys_audio_release_path (gain_info_t local_gain, avsys_audio_path_ex_info_t *control)
 {
 	int err = AVSYS_STATE_SUCCESS;
+#ifdef HAL
 	int iAIF = 0;
 	bool close_aif_later = false;
+#endif
 
 	avsys_warning(AVAUDIO, "Release path for %d %d\n", local_gain.playback, local_gain.capture);
 
 	switch (local_gain.playback) {
 	case AVSYS_AUDIO_PLAYBACK_GAIN_VOICECALL:
 	case AVSYS_AUDIO_PLAYBACK_GAIN_VIDEOCALL:
-		if (getpid() == control->path_fixed_pid[PATH_FIXED_TYPE_CALL]) {
-			if (!control->control_aif_before_path_set) {
-				__avsys_close_aif();
-			} else {
-				close_aif_later = true;
-			}
-
-			if (AVSYS_FAIL(avsys_audio_ascn_single_set(ASCN_CODEC_DISABLE_ON_SUSPEND))) {
-				avsys_error_r(AVAUDIO, "[%s] failed to set codec_disable_on_suspend\n", __func__);
-			}
+#ifdef HAL
+		if (!control->control_aif_before_path_set) {
+			__avsys_close_aif();
 		} else {
-			if (control->path_fixed_pid[PATH_FIXED_TYPE_CALL] < 0) {
-				avsys_warning(AVAUDIO, "Sound path for call released already\n");
-			} else {
-				avsys_warning(AVAUDIO, "Try to close call path from other process.. original pid[%d]\n", control->path_fixed_pid[PATH_FIXED_TYPE_CALL]);
-				avsys_warning(AVAUDIO, "Just mark handle as off\n");
-			}
+			close_aif_later = true;
 		}
+#endif
 
-		if ((control->path_fixed & PATH_FIXED_WITH_CALL) == 0) {
-			avsys_error(AVAUDIO, "Call path release without call path request\n");
+		if (AVSYS_FAIL(avsys_audio_ascn_single_set(ASCN_CODEC_DISABLE_ON_SUSPEND))) {
+			avsys_error_r(AVAUDIO, "[%s] failed to set codec_disable_on_suspend\n", __func__);
 		}
-		control->path_fixed &= ~PATH_FIXED_WITH_CALL;
-		control->path_fixed_pid[PATH_FIXED_TYPE_CALL] = -1;
-
 		break;
 
 	case AVSYS_AUDIO_PLAYBACK_GAIN_FMRADIO:
@@ -941,42 +874,39 @@ static int __avsys_audio_release_path (gain_info_t local_gain, avsys_audio_path_
 		break;
 	}
 
-	if (control->path_fixed != PATH_FIXED_NONE) {
-		avsys_error(AVAUDIO, "Still remain another path_fixed request : 0x%08X\n", control->path_fixed);
-		avsys_error(AVAUDIO, "This is not expected condition\n");
-	} else {
-		avsys_warning(AVAUDIO, "Path Release to default condition....\n");
-		control->gain.playback = AVSYS_AUDIO_PLAYBACK_GAIN_AP;
-		control->gain.capture = AVSYS_AUDIO_CAPTURE_GAIN_AP;
-		control->path.playback = AVSYS_AUDIO_PATH_EX_SPK;
-		control->path.capture = AVSYS_AUDIO_PATH_EX_MIC;
-		if (control->inserted != AVSYS_AUDIO_INSERTED_NONE) {
-			control->path.playback = AVSYS_AUDIO_PATH_EX_HEADSET;
-			if (control->inserted == AVSYS_AUDIO_INSERTED_4)
-				control->path.capture = AVSYS_AUDIO_PATH_EX_HEADSETMIC;
-		}
-
-		/* Playback */
-		err = __avsys_audio_path_set_ascn_ap_playback(control);
-		if (AVSYS_SUCCESS(err)) {
-			err = __avsys_audio_path_set_hw_controls(control);
-			if (AVSYS_FAIL(err)) {
-				avsys_error(AVAUDIO, "Update logical volume failure\n");
-			}
-		} else {
-			avsys_error(AVAUDIO, "Set ap playback failure\n");
-		}
-
-		/* Capture */
-		err = __avsys_audio_path_set_ascn_ap_capture(control);
-		if (AVSYS_FAIL(err)) {
-			avsys_error(AVAUDIO, "Set ap capture failure\n");
-		}
+	avsys_warning(AVAUDIO, "Path Release to default condition....\n");
+	control->gain.playback = AVSYS_AUDIO_PLAYBACK_GAIN_AP;
+	control->gain.capture = AVSYS_AUDIO_CAPTURE_GAIN_AP;
+	control->path.playback = AVSYS_AUDIO_PATH_EX_SPK;
+	control->path.capture = AVSYS_AUDIO_PATH_EX_MIC;
+	if (control->inserted != AVSYS_AUDIO_INSERTED_NONE) {
+		control->path.playback = AVSYS_AUDIO_PATH_EX_HEADSET;
+		if (control->inserted == AVSYS_AUDIO_INSERTED_4)
+			control->path.capture = AVSYS_AUDIO_PATH_EX_HEADSETMIC;
 	}
 
+	/* Playback */
+	err = __avsys_audio_path_set_ascn_ap_playback(control);
+	if (AVSYS_SUCCESS(err)) {
+		err = __avsys_audio_path_set_hw_controls(control);
+		if (AVSYS_FAIL(err)) {
+			avsys_error(AVAUDIO, "Update logical volume failure\n");
+		}
+	} else {
+		avsys_error(AVAUDIO, "Set ap playback failure\n");
+	}
+
+	/* Capture */
+	err = __avsys_audio_path_set_ascn_ap_capture(control);
+	if (AVSYS_FAIL(err)) {
+		avsys_error(AVAUDIO, "Set ap capture failure\n");
+	}
+
+#ifdef HAL
 	if (close_aif_later == true) {
 		__avsys_close_aif();
 	}
+#endif
 
 	return err;
 }
@@ -1020,8 +950,10 @@ int avsys_audio_path_ex_set_path(int gain, int out, int in, int option)
 	pid_t current_pid;
 	int err = AVSYS_STATE_SUCCESS;
 	char req_release_path = 0;
+#ifdef HAL
 	char AIF_control[AIF_DEVICE_MAX] = { CMD_DEVICE_NONE, CMD_DEVICE_NONE, CMD_DEVICE_NONE, CMD_DEVICE_NONE, CMD_DEVICE_NONE };
 	int iAIF = 0;
+#endif
 
 	avsys_warning(AVAUDIO, "=================== [Input Param] gain %d, out %d, in %d, opt 0x%x ====================\n", gain, out, in, option);
 
@@ -1084,52 +1016,19 @@ int avsys_audio_path_ex_set_path(int gain, int out, int in, int option)
 	current_pid = getpid(); /* moved from below */
 
 	/* Check FORCED option */
-	if (option & AVSYS_AUDIO_PATH_OPTION_FORCED) {
-		DO_IF_VALID(req_gain.playback, local_gain.playback = req_gain.playback)
-		DO_IF_VALID(req_gain.capture, local_gain.capture = req_gain.capture)
-	} else {
-		DO_IF_VALID(req_gain.playback, local_gain.playback = g_playback_gain_select_data[control->gain.playback][req_gain.playback])
-		DO_IF_VALID(req_gain.capture, local_gain.capture = g_capture_gain_select_data[control->gain.capture][req_gain.capture])
-	}
+	DO_IF_VALID(req_gain.playback, local_gain.playback = g_playback_gain_select_data[control->gain.playback][req_gain.playback])
+	DO_IF_VALID(req_gain.capture, local_gain.capture = g_capture_gain_select_data[control->gain.capture][req_gain.capture])
 
 	avsys_info(AVAUDIO, "Gain : req(%d,%d)  local(%d,%d)\n", req_gain.playback, req_gain.capture, local_gain.playback, local_gain.capture);
 
-	/* Check path fixed process alive. */
-	if (control->path_fixed & PATH_FIXED_WITH_CALL) {
-		if (AVSYS_FAIL(avsys_check_process(control->path_fixed_pid[PATH_FIXED_TYPE_CALL]))) {
-			control->path_fixed &= ~PATH_FIXED_WITH_CALL;
-		}
+	/* forced gain setting when path fixed by dead process */
+	if (req_gain.playback != local_gain.playback) {
+		local_gain.playback = req_gain.playback;
 	}
-	if (control->path_fixed == PATH_FIXED_NONE) {
-		/* forced gain setting when path fixed by dead process */
-		if (req_gain.playback != local_gain.playback) {
-			local_gain.playback = req_gain.playback;
-		}
-		if (req_gain.capture != local_gain.capture) {
-			local_gain.capture = req_gain.capture;
-		}
+	if (req_gain.capture != local_gain.capture) {
+		local_gain.capture = req_gain.capture;
 	}
 
-	if (CHECK_VALID(local_gain.playback)) {
-		if (g_playback_path_select_data[local_gain.playback][out] == 0) {
-			avsys_error(AVAUDIO, "[PLAYBACK] Does not support request sound path : conv gain %d, out path %d\n", local_gain.playback, out);
-			if (AVSYS_FAIL(avsys_audio_unlock_sync(AVSYS_AUDIO_SYNC_IDEN_PATH))) {
-				avsys_error_r(AVAUDIO, "avsys_audio_unlock_sync() failed in %s\n", __func__);
-				return AVSYS_STATE_ERR_INTERNAL;
-			}
-			return AVSYS_STATE_ERR_INVALID_STATE;
-		}
-	}
-	if (CHECK_VALID(local_gain.capture)) {
-		if (g_capture_path_select_data[local_gain.capture][in] == 0) {
-			avsys_error(AVAUDIO, "[CAPTURE] Does not support request sound path : conv gain %d, in path %d\n", local_gain.capture, in);
-			if (AVSYS_FAIL(avsys_audio_unlock_sync(AVSYS_AUDIO_SYNC_IDEN_PATH))) {
-				avsys_error_r(AVAUDIO, "avsys_audio_unlock_sync() failed in %s\n", __func__);
-				return AVSYS_STATE_ERR_INTERNAL;
-			}
-			return AVSYS_STATE_ERR_INVALID_STATE;
-		}
-	}
 	/* overwrite local_gain with current gain if it is simplex sound path */
 	DO_IF_INVALID(local_gain.playback, local_gain.playback = control->gain.playback)
 	DO_IF_INVALID(local_gain.capture, local_gain.capture = control->gain.capture)
@@ -1144,91 +1043,72 @@ int avsys_audio_path_ex_set_path(int gain, int out, int in, int option)
 	/* Check for Release PATH */
 	if (req_release_path && (req_gain.playback == local_gain.playback) && (req_gain.capture == local_gain.capture)) {
 		avsys_warning(AVAUDIO,"Release path for %d %d\n", local_gain.playback, local_gain.capture);
-
 		err = __avsys_audio_release_path(local_gain, control);
 		goto FINISHED;
 	}
-	if (CHECK_VALID(req_gain.playback)) {
-		if(req_gain.playback != local_gain.playback) {
-			avsys_warning(AVAUDIO, "Sound Path is protected. use current configuration (playback_gain %d, out %d, opt 0x%x)\n",
-					local_gain.playback, control->path.playback, control->option.playback);
-			if (req_gain.playback == AVSYS_AUDIO_PLAYBACK_GAIN_AP) {
-				control->backup_gain.playback = control->reqgain.playback;
-				control->backup_path.playback = out;
-			}
-		} else {
-			control->path.playback = out;
-			control->backup_gain.playback = local_gain.playback;
-			control->backup_path.playback = out;
 
-			switch (local_gain.playback) {
+	if (CHECK_VALID(req_gain.playback)) {
+		control->path.playback = out;
+
+		switch (local_gain.playback) {
 			case AVSYS_AUDIO_PLAYBACK_GAIN_VIDEOCALL:
-				control->path_fixed_pid[PATH_FIXED_TYPE_CALL] = current_pid;
 			case AVSYS_AUDIO_PLAYBACK_GAIN_CALLALERT:
+#ifdef HAL
 				if (control->path.playback == AVSYS_AUDIO_PATH_EX_BTHEADSET) {
 					SET_AIF(AIF3_PLAYBACK);
 					SET_AIF(AIF3_CAPTURE);
 				}
+#endif
 				break;
 
 			case AVSYS_AUDIO_PLAYBACK_GAIN_VOICECALL:
-				control->path_fixed_pid[PATH_FIXED_TYPE_CALL] = current_pid;
+#ifdef HAL
 				SET_AIF(AIF2_PLAYBACK);
-
 				if (control->path.playback == AVSYS_AUDIO_PATH_EX_BTHEADSET) {
 					SET_AIF(AIF3_PLAYBACK);
 				}
+#endif
 				break;
 
 			case AVSYS_AUDIO_PLAYBACK_GAIN_FMRADIO:
-				control->path_fixed_pid[PATH_FIXED_TYPE_FMRADIO] = current_pid;
+#ifdef HAL
 				SET_AIF(AIF4_PLAYBACK);
+#endif
 				break;
-			}
 		}
 	}
 
 	if (CHECK_VALID(req_gain.capture)) {
-		if (req_gain.capture != local_gain.capture) {
-			avsys_warning(AVAUDIO, "Sound Path is protected. use current configuration (capture_gain %d, in %d, opt 0x%x)\n",
-					local_gain.capture, control->path.capture, control->option.capture);
-			if (req_gain.capture == AVSYS_AUDIO_CAPTURE_GAIN_AP) {
-				control->backup_gain.capture = control->reqgain.capture;
-				control->backup_path.capture = in;
-			}
-		} else {
 			control->path.capture = in;
-			control->backup_gain.capture = local_gain.capture;
-			control->backup_path.capture = in;
 
 			switch (local_gain.capture) {
 			case AVSYS_AUDIO_CAPTURE_GAIN_VIDEOCALL:
-				control->path_fixed_pid[PATH_FIXED_TYPE_CALL] = current_pid;
+#ifdef HAL
 				if (control->path.capture == AVSYS_AUDIO_PATH_EX_BTMIC) {
 					SET_AIF(AIF3_CAPTURE);
 				}
+#endif
 				break;
 
 			case AVSYS_AUDIO_CAPTURE_GAIN_VOICECALL:
-				control->path_fixed_pid[PATH_FIXED_TYPE_CALL] = current_pid;
+#ifdef HAL
 				SET_AIF(AIF2_CAPTURE);
-
 				if (control->path.capture == AVSYS_AUDIO_PATH_EX_BTMIC) {
 					SET_AIF(AIF3_CAPTURE);
 				}
+#endif
 				break;
 
 			case AVSYS_AUDIO_CAPTURE_GAIN_FMRADIO:
-				control->path_fixed_pid[PATH_FIXED_TYPE_FMRADIO] = current_pid;
 				break;
 			}
-		}
 	}
-
+#ifdef HAL
 	/* Open AIFs */
 	if (control->control_aif_before_path_set) {
 		err = __avsys_open_aif(AIF_control);
 	}
+#endif
 
 	/* Do ALSA scenario control based on gain */
 	/* Playback */
@@ -1263,9 +1143,11 @@ int avsys_audio_path_ex_set_path(int gain, int out, int in, int option)
 		err = __avsys_audio_path_set_ascn_ap_capture(control);
 	}
 
+#ifdef HAL
 	if (!control->control_aif_before_path_set) {
 		err = __avsys_open_aif(AIF_control);
 	}
+#endif
 
 FINISHED:
 	/* UnLOCK */
@@ -1479,7 +1361,6 @@ static int __avsys_audio_path_set_ascn_ap_playback(avsys_audio_path_ex_info_t *c
 				control->path.playback, control->option.playback, control->gain.playback, control->inserted);
 
 	callalert_mode = (control->gain.playback == AVSYS_AUDIO_PLAYBACK_GAIN_CALLALERT) ? 1 : 0;
-	control->path_fixed = PATH_FIXED_NONE;
 
 	switch (control->path.playback) {
 	case AVSYS_AUDIO_PATH_EX_SPK:
@@ -1568,7 +1449,6 @@ static int __avsys_audio_path_set_ascn_videocall(avsys_audio_path_ex_info_t *con
 	int gain_idx = 0;
 	int path_idx = 0;
 
-	control->path_fixed = PATH_FIXED_WITH_CALL;
 	switch (control->path.playback) {
 	case AVSYS_AUDIO_PATH_EX_NONE:
 		avsys_warning(AVAUDIO, "[SZ] playback AVSYS_AUDIO_PATH_EX_NONE\n");
@@ -1795,7 +1675,6 @@ static int __avsys_audio_path_set_hw_controls(avsys_audio_path_ex_info_t *contro
 	avsys_audio_handle_info_t **temp = NULL;
 	int ret = AVSYS_STATE_SUCCESS;
 	avsys_info(AVAUDIO, "global mute %d\n", control->mute);
-	avsys_info(AVAUDIO, "path_fixed mute %d\n", control->path_fixed);
 
 	/* update logical volume table - about output device - information for open handles */
 	avsys_info(AVAUDIO, "Control handle informations\n");
@@ -1842,15 +1721,6 @@ static int __avsys_audio_path_set_hw_controls(avsys_audio_path_ex_info_t *contro
 	return AVSYS_STATE_SUCCESS;
 }
 
-static bool __avsys_audio_path_check_cp_audio(int gain)
-{
-	/*If video call uses CP audio, add AVSYS_AUDIO_GAIN_EX_VIDEOCALL to following code. */
-	if (gain == AVSYS_AUDIO_GAIN_EX_VOICECALL)
-		return true;
-	else
-		return false;
-}
-
 int avsys_audio_path_set_volume(int handle)
 {
 	avsys_audio_path_ex_info_t *control = NULL;
@@ -1872,11 +1742,6 @@ int avsys_audio_path_set_volume(int handle)
 	avsys_assert(control != NULL);
 	avsys_assert(AVSYS_SUCCESS(avsys_audio_lock_sync(AVSYS_AUDIO_SYNC_IDEN_PATH)));
 
-	if (__avsys_audio_path_check_cp_audio(control->gain.playback))
-		ptr->during_cp_audio = 1;
-	else
-		ptr->during_cp_audio = 0;
-
 	gain_type = ptr->gain_setting.vol_type;
 	out_device = control->lvol_dev_type;
 	avsys_assert(AVSYS_SUCCESS(avsys_audio_unlock_sync(AVSYS_AUDIO_SYNC_IDEN_PATH)));
@@ -1896,33 +1761,6 @@ int avsys_audio_path_get_route_policy(avsys_audio_route_policy_t *route)
 {
 	/* Deprecated */
 	return 0;
-}
-
-int avsys_audio_path_check_cp_audio(bool *cpaudio, bool *btpath)
-{
-	avsys_audio_path_ex_info_t *control = NULL;
-	avsys_audio_path_ex_info_t **temp = NULL;
-
-	if (!cpaudio || !btpath)
-		return AVSYS_STATE_ERR_INVALID_PARAMETER;
-
-	temp = &control;
-	avsys_assert(AVSYS_SUCCESS(avsys_audio_get_shm(AVSYS_AUDIO_SHM_IDEN_PATH, (void **)temp)));
-	avsys_assert(control != NULL);
-	avsys_assert(AVSYS_SUCCESS(avsys_audio_lock_sync(AVSYS_AUDIO_SYNC_IDEN_PATH)));
-
-	if (__avsys_audio_path_check_cp_audio(control->gain.playback))
-		*cpaudio = true;
-	else
-		*cpaudio = false;
-
-	if (control->path.playback == AVSYS_AUDIO_PATH_EX_BTHEADSET)
-		*btpath = true;
-	else
-		*btpath = false;
-
-	avsys_assert(AVSYS_SUCCESS(avsys_audio_unlock_sync(AVSYS_AUDIO_SYNC_IDEN_PATH)));
-	return AVSYS_STATE_SUCCESS;
 }
 
 int avsys_audio_path_set_single_ascn(char *str)
