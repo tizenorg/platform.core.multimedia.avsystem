@@ -2,7 +2,7 @@ pcfiles = avsystem.pc avsysaudio.pc
 
 all-local: $(pcfiles)
 
-%.pc: %.pc
+SUFFIXES: .pc
 	cp $< $@
 
 pkgconfigdir= $(libdir)/pkgconfig
