@@ -37,6 +37,7 @@
 #include "avsys-audio.h"
 #include "avsys-audio-logical-volume.h"
 #include "avsys-common.h"
+#include "avsys-audio-sync.h"
 
 #include "avsys-audio-path.h"
 #include "avsys-audio-alsa.h"
@@ -50,6 +51,10 @@
 #define FADEUP_CALC_BIAS	(1)
 
 static int __avsys_audio_set_info(avsys_audio_handle_t *p, avsys_audio_param_t *param);
+static int __avsys_audio_handle_init(int *handle,
+				avsys_audio_handle_t **ptr,
+				avsys_audio_param_t *param);
+
 
 void __init_module(void);
 void __fini_module(void);
@@ -122,7 +127,9 @@ int avsys_audio_open(avsys_audio_param_t *param, avsys_handle_t *phandle, int *s
 		avsys_error(AVAUDIO, "Unused handle cleanup before handle allocation failed in %s\n", __func__);
 		goto error;
 	}
-	err = avsys_audio_handle_alloc(&handle);
+
+	err = __avsys_audio_handle_init(&handle,&p,param);
+
 	if (AVSYS_STATE_ERR_RANGE_OVER == err) {
 		avsys_error(AVAUDIO, "audio handle is fully allocated..try cleanup\n");
 		err = avsys_audio_handle_rejuvenation();
@@ -131,24 +138,13 @@ int avsys_audio_open(avsys_audio_param_t *param, avsys_handle_t *phandle, int *s
 			goto error;
 		}
 		avsys_error(AVAUDIO, "one more try...to allocate audio handle\n");
-		err = avsys_audio_handle_alloc(&handle);
+		err = __avsys_audio_handle_init(&handle,&p,param);
 		if (AVSYS_FAIL(err)) {
 			avsys_error(AVAUDIO, "handle alloc failed 1 in %s\n", __func__);
 			goto error;
 		}
 	} else if ((AVSYS_FAIL(err)) && (err != AVSYS_STATE_ERR_RANGE_OVER)) {
 		avsys_error(AVAUDIO, "handle alloc failed 2 in %s\n", __func__);
-		goto error;
-	}
-
-	err = avsys_audio_handle_get_ptr(handle, &p, HANDLE_PTR_MODE_NORMAL);
-	if (AVSYS_FAIL(err)) {
-		goto error;
-	}
-
-	/* set information to handle */
-	err = __avsys_audio_set_info(p, param);
-	if (AVSYS_FAIL(err)) {
 		goto error;
 	}
 
@@ -754,6 +750,37 @@ static int __avsys_audio_set_info(avsys_audio_handle_t *p, avsys_audio_param_t *
 	p->fadeup_vol = 0;
 
 	return AVSYS_STATE_SUCCESS;
+}
+
+static int __avsys_audio_handle_init(int *handle,
+				avsys_audio_handle_t **ptr,
+				avsys_audio_param_t *param)
+{
+	int err = AVSYS_STATE_ERR_UNKNOWN;
+
+	if (AVSYS_FAIL(avsys_audio_lock_sync(AVSYS_AUDIO_SYNC_IDEN_HANDLE))) {
+		avsys_error(AVAUDIO,"avsys_audio_lock_sync() failed in %s\n", __func__);
+		return AVSYS_STATE_ERR_INTERNAL;
+	}
+
+	err = avsys_audio_handle_alloc_unlocked(handle);
+
+	if (AVSYS_STATE_SUCCESS == err) {
+
+		err = avsys_audio_handle_get_ptr_unlocked(*handle, ptr, HANDLE_PTR_MODE_NORMAL);
+		if(AVSYS_STATE_SUCCESS == err) {
+
+			/* set information to handle */
+			err = __avsys_audio_set_info(*ptr, param);
+		}
+	}
+
+	if (AVSYS_FAIL(avsys_audio_unlock_sync(AVSYS_AUDIO_SYNC_IDEN_HANDLE))) {
+		avsys_error(AVAUDIO,"avsys_audio_unlock_sync() failed in %s\n", __func__);
+		return AVSYS_STATE_ERR_INTERNAL;
+	}
+
+	return err;
 }
 
 EXPORT_API

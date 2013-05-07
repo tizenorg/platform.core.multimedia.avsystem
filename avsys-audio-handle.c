@@ -439,6 +439,39 @@ int avsys_audio_handle_alloc(int *handle)
 	}
 }
 
+int avsys_audio_handle_alloc_unlocked(int *handle)
+{
+	long long int flag = 0x01;
+	int i;
+	avsys_audio_handle_info_t *control = NULL;
+	avsys_audio_handle_info_t **temp = NULL;
+	temp = &control;
+
+	avsys_info(AVAUDIO, "%s\n", __func__);
+	AVSYS_GET_SHM(temp,AVSYS_STATE_ERR_INTERNAL);
+
+	for (i = 0; i < AVSYS_AUDIO_HANDLE_MAX; i++) {
+		if ((control->allocated & flag) == 0) { /* alloc condition */
+			control->allocated |= flag;
+			break;
+		} else {
+			flag <<= 1;
+		}
+	}
+
+	if (i == AVSYS_AUDIO_HANDLE_MAX) {
+		*handle = -1;
+		return AVSYS_STATE_ERR_RANGE_OVER;
+	} else {
+		avsys_info(AVAUDIO, "handle allocated %d\n", i);
+		memset(&control->handles[i], 0, sizeof(avsys_audio_handle_t));
+		control->handles[i].pid = getpid();
+		control->handles[i].tid = avsys_gettid();
+		*handle = i;
+		return AVSYS_STATE_SUCCESS;
+	}
+}
+
 int avsys_audio_handle_free(int handle)
 {
 	long long int flag = 0x01;
@@ -518,6 +551,43 @@ int avsys_audio_handle_get_ptr(int handle, avsys_audio_handle_t **ptr, const int
 			*ptr = NULL;
 			return AVSYS_STATE_ERR_INTERNAL;
 		}
+	}
+
+	return ret;
+}
+
+int avsys_audio_handle_get_ptr_unlocked(int handle, avsys_audio_handle_t **ptr, const int mode)
+{
+	long long int flag = 0x01;
+	avsys_audio_handle_info_t *control = NULL;
+	avsys_audio_handle_info_t **temp = NULL;
+	int ret = AVSYS_STATE_SUCCESS;
+
+	if (handle < 0 || handle >= AVSYS_AUDIO_HANDLE_MAX) {
+		*ptr = NULL;
+		return AVSYS_STATE_ERR_INVALID_HANDLE;
+	}
+
+	if (mode < 0 || mode >= HANDLE_PTR_MODE_NUM) {
+		*ptr = NULL;
+		return AVSYS_STATE_ERR_INVALID_PARAMETER;
+	}
+
+	temp = &control;
+	if (AVSYS_FAIL(avsys_audio_get_shm(AVSYS_AUDIO_SHM_IDEN_HANDLE, (void **)temp))) {
+		avsys_error(AVAUDIO, "avsys_audio_get_shm() failed in %s\n", __func__);
+		*ptr = NULL;
+		return AVSYS_STATE_ERR_INTERNAL;
+	}
+
+	flag <<= handle;
+
+	if (control->allocated & flag) {
+		*ptr = &(control->handles[handle]);
+		ret = AVSYS_STATE_SUCCESS;
+	} else {
+		*ptr = NULL;
+		ret = AVSYS_STATE_ERR_INVALID_VALUE;
 	}
 
 	return ret;
