@@ -63,20 +63,24 @@ install -m 0644 %SOURCE101 %{buildroot}/usr/lib/systemd/system/avsystem.service
 ln -s ../avsystem.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/avsystem.service
 
 %preun
-if [ $1 == 0 ]; then
+if [ $1 == 0 ] && [ -x /usr/bin/systemctl ]; then
     systemctl stop avsystem.service
 fi
 
 %post
 /sbin/ldconfig
-systemctl daemon-reload
-if [ $1 == 1 ]; then
-    systemctl restart avsystem.service
+if [ -x /usr/bin/systemctl ]; then
+	systemctl daemon-reload
+	if [ $1 == 1 ]; then
+    	systemctl restart avsystem.service
+	fi
 fi
 
 %postun
 /sbin/ldconfig
-systemctl daemon-reload
+if [ -x systemctl ]; then
+	systemctl daemon-reload
+fi
 
 %files
 %manifest avsystem.manifest
