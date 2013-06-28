@@ -6,6 +6,7 @@ Group:      System/Libraries
 License:    Apache-2.0
 Source0:    avsystem-%{version}.tar.gz
 Source101:  packaging/avsystem.service
+Source1001: 	avsystem.manifest
 
 Requires(post): /sbin/ldconfig
 Requires(post): /usr/bin/systemctl
@@ -37,6 +38,7 @@ Audio Video System Development headers and libraries.
 
 %prep
 %setup -q -n %{name}-%{version}
+cp %{SOURCE1001} .
 
 
 %build
@@ -79,7 +81,7 @@ fi
 systemctl daemon-reload
 
 %files
-%manifest avsystem.manifest
+%manifest %{name}.manifest
 %defattr(-,root,root,-)
 %{_sysconfdir}/rc.d/init.d/snd_init
 %{_sysconfdir}/rc.d/rc3.d/S15snd_init
@@ -90,7 +92,7 @@ systemctl daemon-reload
 /usr/lib/systemd/system/multi-user.target.wants/avsystem.service
 
 %files devel
-%manifest avsystem.manifest
+%manifest %{name}.manifest
 %{_libdir}/pkgconfig/*.pc
 %{_libdir}/*.so
 %{_includedir}/avsystem/*.h
