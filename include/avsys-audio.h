@@ -56,6 +56,7 @@ enum avsys_audio_mode_t {
 	AVSYS_AUDIO_MODE_OUTPUT_CLOCK,			/**< Output mode of gst audio only mode */
 	AVSYS_AUDIO_MODE_OUTPUT_VIDEO,			/**< Output mode of gst video mode */
 	AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY,	/**< Output mode for low latency play mode. typically for game */
+	AVSYS_AUDIO_MODE_OUTPUT_DSP,			/**< Output mode for audio dsp hardware decoding */
 	AVSYS_AUDIO_MODE_INPUT,					/**< Input mode of handle */
 	AVSYS_AUDIO_MODE_INPUT_HIGH_LATENCY,	/**< Input mode for high latency capture mode. */
 	AVSYS_AUDIO_MODE_INPUT_LOW_LATENCY,		/**< Input mode for low latency capture mode. typically for VoIP */

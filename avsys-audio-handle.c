@@ -853,7 +853,8 @@ int avsys_audio_handle_current_playing_volume_type(int *type)
 			if(control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT ||
 					control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_CLOCK ||
 					control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_VIDEO ||
-					control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY ) {
+					control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY ||
+					control->handles[i].mode == AVSYS_AUDIO_MODE_OUTPUT_DSP ) {
 				used_table[vol_conf_type] = 1;
 			}
 			else if(control->handles[i].mode == AVSYS_AUDIO_MODE_INPUT ||
@@ -971,7 +972,7 @@ int avsys_audio_handle_update_volume_by_type(const int volume_type, const int vo
 		mode = control->handles[i].mode;
 		if (mode != AVSYS_AUDIO_MODE_OUTPUT && mode != AVSYS_AUDIO_MODE_OUTPUT_CLOCK
 				&& mode != AVSYS_AUDIO_MODE_OUTPUT_VIDEO && mode != AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY
-				&& mode != AVSYS_AUDIO_MODE_OUTPUT_AP_CALL) {
+				&& mode != AVSYS_AUDIO_MODE_OUTPUT_AP_CALL && mode != AVSYS_AUDIO_MODE_OUTPUT_DSP) {
 			continue;
 		}
 

@@ -148,7 +148,7 @@ int avsys_audio_open(avsys_audio_param_t *param, avsys_handle_t *phandle, int *s
 		goto error;
 	}
 
-	if (p->mode == AVSYS_AUDIO_MODE_OUTPUT || p->mode == AVSYS_AUDIO_MODE_OUTPUT_CLOCK ||
+	if (p->mode == AVSYS_AUDIO_MODE_OUTPUT || p->mode == AVSYS_AUDIO_MODE_OUTPUT_CLOCK || p->mode == AVSYS_AUDIO_MODE_OUTPUT_DSP ||
 		p->mode == AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY || p->mode == AVSYS_AUDIO_MODE_OUTPUT_AP_CALL || p->mode == AVSYS_AUDIO_MODE_OUTPUT_VIDEO) {
 		/* set volume table */
 		err = avsys_audio_path_set_volume(handle);
@@ -178,6 +178,7 @@ int avsys_audio_open(avsys_audio_param_t *param, avsys_handle_t *phandle, int *s
 	case AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY:
 	case AVSYS_AUDIO_MODE_OUTPUT_VIDEO:
 	case AVSYS_AUDIO_MODE_OUTPUT_AP_CALL:
+	case AVSYS_AUDIO_MODE_OUTPUT_DSP:
 		if (AVSYS_FAIL(avsys_audio_pasimple_set_volume(p, p->working_vol.level[AVSYS_AUDIO_CHANNEL_LEFT]))) {
 			avsys_error(AVAUDIO, "can not set volume in %s\n", __func__);
 		}
@@ -283,7 +284,7 @@ int avsys_audio_update_volume_config(avsys_handle_t handle, int volume_config)
 
 	if (p->mode == AVSYS_AUDIO_MODE_OUTPUT || p->mode == AVSYS_AUDIO_MODE_OUTPUT_CLOCK
 		|| p->mode == AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY || p->mode == AVSYS_AUDIO_MODE_OUTPUT_AP_CALL
-		|| p->mode == AVSYS_AUDIO_MODE_OUTPUT_VIDEO) {
+		|| p->mode == AVSYS_AUDIO_MODE_OUTPUT_VIDEO || p->mode == AVSYS_AUDIO_MODE_OUTPUT_DSP) {
 		p->gain_setting.volume_config = volume_config;
 		/* update volume by type */
 		err = avsys_audio_handle_update_volume(p, p->gain_setting.volume_config);

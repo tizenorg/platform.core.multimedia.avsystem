@@ -70,6 +70,7 @@ do { \
 #define MEDIA_POLICY_AUTO	"auto"
 #define MEDIA_POLICY_PHONE	"phone"
 #define MEDIA_POLICY_ALL	"all"
+#define MEDIA_ROLE_FILTER	"filter"
 
 int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, const unsigned int channel, const unsigned int samplerate, avsys_audio_handle_t *handle, int policy)
 {
@@ -197,6 +198,13 @@ int avsys_audio_pasimple_open_device(const int mode, const unsigned int format, 
 						-1, -1, periods_per_buffer * samples_per_period * device->samplesize, attr.tlength, 0);
 
 		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "PLAYBACK", &ss, &channel_map, &attr, proplist, &err);
+		break;
+
+	case AVSYS_AUDIO_MODE_OUTPUT_DSP:	/* audio dsp hw decoding case. */
+		avsys_info(AVAUDIO, ": set media role to filter\n");
+		pa_proplist_sets(proplist, PA_PROP_MEDIA_ROLE, MEDIA_ROLE_FILTER);
+
+		s = pa_simple_new_proplist(NULL, "AVSYSTEM", PA_STREAM_PLAYBACK, NULL, "DSP PLAYBACK", &ss, &channel_map, &attr, proplist, &err);
 		break;
 
 	case AVSYS_AUDIO_MODE_OUTPUT_LOW_LATENCY:	/* This is special case for touch sound playback */
