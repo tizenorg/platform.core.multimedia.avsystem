@@ -1,0 +1,8 @@
+Change-Id: I1766b71ebba67443ca88f489b78abaa016eee3b3
+Code-Review+2: Ryan Ware <ware@linux.intel.com>
+Verified+1: Ryan Ware <ware@linux.intel.com>
+Submitted-by: Ryan Ware <ware@linux.intel.com>
+Submitted-at: Mon, 08 Jul 2013 10:07:30 -0700
+Reviewed-on: https://review.tizen.org/gerrit/4454
+Project: platform/core/multimedia/avsystem
+Branch: refs/heads/tizen
