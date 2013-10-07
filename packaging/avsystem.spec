@@ -36,6 +36,12 @@ Requires:   %{name} = %{version}-%{release}
 Audio Video System Development headers and libraries.
 
 
+%package -n libavsysaudio
+Summary:    Audio Video System libraries
+
+%description -n libavsysaudio
+Audio Video System libraries
+
 %prep
 %setup -q -n %{name}-%{version}
 cp %{SOURCE1001} .
@@ -70,15 +76,19 @@ if [ $1 == 0 ]; then
 fi
 
 %post
-/sbin/ldconfig
 systemctl daemon-reload
 if [ $1 == 1 ]; then
     systemctl restart avsystem.service
 fi
 
-%postun
+%post -n libavsysaudio
 /sbin/ldconfig
+
+%postun
 systemctl daemon-reload
+
+%postun -n libavsysaudio
+/sbin/ldconfig
 
 %files
 %manifest %{name}.manifest
@@ -87,7 +97,6 @@ systemctl daemon-reload
 %{_sysconfdir}/rc.d/rc3.d/S15snd_init
 %{_sysconfdir}/rc.d/rc4.d/S15snd_init
 %{_bindir}/*
-%{_libdir}/lib*.so.*
 /usr/lib/systemd/system/avsystem.service
 /usr/lib/systemd/system/multi-user.target.wants/avsystem.service
 
@@ -96,3 +105,7 @@ systemctl daemon-reload
 %{_libdir}/pkgconfig/*.pc
 %{_libdir}/*.so
 %{_includedir}/avsystem/*.h
+
+%files -n libavsysaudio
+%manifest %{name}.manifest
+%{_libdir}/lib*.so.*
