@@ -1,0 +1,10 @@
+Code-Review+1: Patrick McCarty <patrick.mccarty@linux.intel.com>
+Verified+1: Mikko Ylinen <mikko.ylinen@intel.com>
+Code-Review+2: vivian zhang <vivian.zhang@intel.com>
+Verified+1: vivian zhang <vivian.zhang@intel.com>
+Code-Review+1: Baptiste DURAND <baptiste.durand@eurogiciel.fr>
+Submitted-by: vivian zhang <vivian.zhang@intel.com>
+Submitted-at: Thu, 10 Oct 2013 23:09:43 -0700
+Reviewed-on: https://review.tizen.org/gerrit/10584
+Project: platform/core/multimedia/avsystem
+Branch: refs/heads/tizen
