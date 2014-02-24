@@ -408,7 +408,7 @@ int avsys_audio_load_volume_from_ini(void)
 			key = malloc(strlen(dev_str[dev_idx]) + strlen(vol_type_str[vol_type_idx]) + 2);
 			if (key) {
 				sprintf(key, "%s:%s", dev_str[dev_idx], vol_type_str[vol_type_idx]);
-				list_str = iniparser_getstr(dict, key);
+				list_str = iniparser_getstring(dict, key, NULL);
 				if (list_str) {
 					token = strtok_r(list_str, delimiter, &ptr);
 					while (token) {
@@ -425,7 +425,7 @@ int avsys_audio_load_volume_from_ini(void)
 		key = malloc(strlen(dev_str[dev_idx]) + strlen("gain") + 2);
 		if (key) {
 			sprintf(key, "%s:gain", dev_str[dev_idx]);
-			list_str = iniparser_getstr(dict, key);
+			list_str = iniparser_getstring(dict, key, NULL);
 			if (list_str) {
 				token = strtok_r(list_str, delimiter, &ptr);
 				while (token) {
