@@ -6,14 +6,15 @@ Group:      System/Libraries
 License:    Apache-2.0
 Source0:    avsystem-%{version}.tar.gz
 Source101:  packaging/avsystem.service
-Source1001: 	avsystem.manifest
+Source1001: avsystem.manifest
 
-Requires(post): /sbin/ldconfig
-Requires(post): /usr/bin/systemctl
+Requires(post):   /sbin/ldconfig
+Requires(post):   /usr/bin/systemctl
 Requires(postun): /sbin/ldconfig
 Requires(postun): /usr/bin/systemctl
-Requires(preun): /usr/bin/systemctl
+Requires(preun):  /usr/bin/systemctl
 
+BuildRequires: pkgconfig
 BuildRequires: pkgconfig(alsa)
 BuildRequires: pkgconfig(iniparser)
 BuildRequires: pkgconfig(mm-ta)
@@ -22,25 +23,25 @@ BuildRequires: pkgconfig(libexif)
 BuildRequires: pkgconfig(libpulse)
 BuildRequires: pkgconfig(libascenario)
 
-
 %description
-Audio Video System
+Audio Video System package.
 
 
 %package devel
-Summary:    Audio Video System Development headers and libraries
+Summary:    Audio Video System (dev)
 Group:      Development/Libraries
 Requires:   %{name} = %{version}-%{release}
 
 %description devel
-Audio Video System Development headers and libraries.
+Audio Video System development headers and libraries.
 
 
 %package -n libavsysaudio
-Summary:    Audio Video System libraries
+Summary:    Audio Video System (libs)
 
 %description -n libavsysaudio
-Audio Video System libraries
+Audio Video System libraries.
+
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -51,24 +52,21 @@ cp %{SOURCE1001} .
 %autogen
 %configure \
 %if 0%{?simulator}
-	--enable-audiotest --enable-sdk
+    --enable-audiotest --enable-sdk
 %else
-	--enable-audiotest
+    --enable-audiotest
 %endif
 
-make %{?jobs:-j%jobs}
+%__make %{?_smp_mflags}
+
 
 %install
 %make_install
 
-mkdir -m 755 -p %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/
-ln -s ../init.d/snd_init %{buildroot}/%{_sysconfdir}/rc.d/rc3.d/S15snd_init
-mkdir -m 755 -p %{buildroot}/%{_sysconfdir}/rc.d/rc4.d/
-ln -s ../init.d/snd_init %{buildroot}/%{_sysconfdir}/rc.d/rc4.d/S15snd_init
+mkdir -m 755 -p %{buildroot}%{_unitdir}/multi-user.target.wants
+install -m 0644 %SOURCE101 %{buildroot}%{_unitdir}/avsystem.service
+ln -sf ../avsystem.service %{buildroot}%{_unitdir}/multi-user.target.wants/avsystem.service
 
-mkdir -m 755 -p %{buildroot}/usr/lib/systemd/system/multi-user.target.wants
-install -m 0644 %SOURCE101 %{buildroot}/usr/lib/systemd/system/avsystem.service
-ln -s ../avsystem.service %{buildroot}/usr/lib/systemd/system/multi-user.target.wants/avsystem.service
 
 %preun
 if [ $1 == 0 ]; then
@@ -93,12 +91,9 @@ systemctl daemon-reload
 %files
 %manifest %{name}.manifest
 %defattr(-,root,root,-)
-%{_sysconfdir}/rc.d/init.d/snd_init
-%{_sysconfdir}/rc.d/rc3.d/S15snd_init
-%{_sysconfdir}/rc.d/rc4.d/S15snd_init
 %{_bindir}/*
-/usr/lib/systemd/system/avsystem.service
-/usr/lib/systemd/system/multi-user.target.wants/avsystem.service
+%{_unitdir}/avsystem.service
+%{_unitdir}/multi-user.target.wants/avsystem.service
 
 %files devel
 %manifest %{name}.manifest
