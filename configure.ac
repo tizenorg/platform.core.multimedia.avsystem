@@ -103,6 +103,5 @@ pkgconfig-arm/avsysaudio.pc
 pkgconfig-i386/Makefile
 pkgconfig-i386/avsystem.pc
 pkgconfig-i386/avsysaudio.pc
-init/Makefile
 ])
 AC_OUTPUT
