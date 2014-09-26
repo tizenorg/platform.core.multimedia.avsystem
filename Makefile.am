@@ -3,7 +3,6 @@ SUBDIRS = pkgconfig-i386
 else
 SUBDIRS = pkgconfig-arm
 endif
-SUBDIRS += init
 
 lib_LTLIBRARIES = libavsysaudio.la
 
