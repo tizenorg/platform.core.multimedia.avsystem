@@ -1,7 +1,7 @@
 AC_PREREQ(2.52)
 
 AC_INIT([avsystem], [1.0])
-AM_INIT_AUTOMAKE([-Wall -Werror foreign])
+AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror foreign])
 AC_CONFIG_HEADERS([config.h:config.hin])
 
 AC_CONFIG_MACRO_DIR([m4])
