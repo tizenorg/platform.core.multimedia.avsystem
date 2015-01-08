@@ -1,6 +1,6 @@
 Name:       avsystem
 Summary:    Audio Video System
-Version:    0.5.5
+Version:    0.5.6
 Release:    0
 Group:      System/Libraries
 License:    Apache-2.0

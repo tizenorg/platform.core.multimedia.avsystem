@@ -40,26 +40,38 @@
 #ifdef __DEBUG_MODE__
 #ifdef __USE_LOGMANAGER__
 
-#define avsys_info_r(owner, msg, args...)		log_print_rel( owner, LOG_CLASS_INFO, msg, ##args )
-#define avsys_warning_r(owner, msg, args...)	log_print_rel( owner, LOG_CLASS_WARNING, msg, ##args )
-#define avsys_error_r(owner, msg, args...)		log_print_rel( owner, LOG_CLASS_ERR, msg, ##args )
-#define avsys_critical_r(owner, msg, args...)	log_print_rel( owner, LOG_CLASS_CRITICAL, msg, ##args )
+#define log_assert_rel(condition) \
+	do { \
+		if(!(condition)) { \
+			mm_log_by_owner(0, LOG_FATAL, "Assertion Fail", NULL); \
+			abort(); \
+		} \
+	} while(0)
+
+#define avsys_debug_r(owner, msg, args...)		mm_log_by_owner( owner, LOG_DEBUG, msg, ##args )
+#define avsys_info_r(owner, msg, args...)		mm_log_by_owner( owner, LOG_INFO, msg, ##args )
+#define avsys_warning_r(owner, msg, args...)	mm_log_by_owner( owner, LOG_WARN, msg, ##args )
+#define avsys_error_r(owner, msg, args...)		mm_log_by_owner( owner, LOG_ERROR, msg, ##args )
+#define avsys_critical_r(owner, msg, args...)	mm_log_by_owner( owner, LOG_FATAL, msg, ##args )
 #define avsys_assert_r(condition)				log_assert_rel(( condition ))
 
-#define avsys_info(owner, msg, args...)			log_print_dbg( owner, LOG_CLASS_INFO, msg, ##args )
-#define avsys_warning(owner, msg, args...)		log_print_dbg( owner, LOG_CLASS_WARNING, msg, ##args )
-#define avsys_error(owner, msg, args...)		log_print_dbg( owner, LOG_CLASS_ERR, msg, ##args )
-#define avsys_critical(owner, msg, args...)		log_print_dbg( owner, LOG_CLASS_CRITICAL, msg, ##args )
-#define avsys_assert(condition)					log_assert_dbg( (condition) )
+#define avsys_debug(owner, msg, args...)			mm_log_by_owner( owner, LOG_DEBUG, msg, ##args )
+#define avsys_info(owner, msg, args...)			mm_log_by_owner( owner, LOG_INFO, msg, ##args )
+#define avsys_warning(owner, msg, args...)		mm_log_by_owner( owner, LOG_WARN, msg, ##args )
+#define avsys_error(owner, msg, args...)		mm_log_by_owner( owner, LOG_ERROR, msg, ##args )
+#define avsys_critical(owner, msg, args...)		mm_log_by_owner( owner, LOG_FATAL, msg, ##args )
+#define avsys_assert(condition)					log_assert_rel( (condition) )
 
 #else	/* __USE_LOGMANAGER__ */
 
+#define avsys_debug_r(owner, msg, args...)		fprintf(stderr, msg, ##args)
 #define avsys_info_r(owner, msg, args...)		fprintf(stderr, msg, ##args)
 #define avsys_warning_r(owner, msg, args...)	fprintf(stderr, msg, ##args)
 #define avsys_error_r(owner, msg, args...)		fprintf(stderr, msg, ##args)
 #define avsys_critical_r(owner, msg, args...)	fprintf(stderr, msg, ##args)
 #define avsys_assert_r(condition)				(condition)
 
+#define avsys_debug(owner, msg, args...)			fprintf(stderr, msg, ##args)
 #define avsys_info(owner, msg, args...)			fprintf(stderr, msg, ##args)
 #define avsys_warning(owner, msg, args...)		fprintf(stderr, msg, ##args)
 #define avsys_error(owner, msg, args...)		fprintf(stderr, msg, ##args)
@@ -70,12 +82,14 @@
 
 #else	/* __DEBUG_MODE__ */
 
+#define avsys_debug_r(owner, msg, args...)
 #define avsys_info_r(owner, msg, args...)
 #define avsys_warning_r(owner, msg, args...)
 #define avsys_error_r(owner, msg, args...)
 #define avsys_critical_r(owner, msg, args...)
 #define avsys_assert_r(condition)				(condition)
 
+#define avsys_debug(owner, msg, args...)
 #define avsys_info(owner, msg, args...)
 #define avsys_warning(owner, msg, args...)
 #define avsys_error(owner, msg, args...)
